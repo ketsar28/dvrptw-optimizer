@@ -1,11 +1,11 @@
 """
-app.py — Dashboard DVRPTW (Farida Nuha)
+app.py — Dashboard DVRPTW (Nuha Bahiyya Al Faridha)
 =========================================
 Aplikasi Streamlit untuk optimasi rute kendaraan dinamis
 (Dynamic Vehicle Routing Problem with Time Windows).
 
-Algoritma: Nearest Neighbor + Cheapest Insertion + RVND.
-Penulis  : Farida Nuha
+Algoritma: Sequential Insertion + Cheapest Insertion + ILS (Local Search + RVND + Perturbasi).
+Penulis  : Nuha Bahiyya Al Faridha (NIM: 220312609348)
 Universitas Negeri Malang — Matematika
 """
 
@@ -151,7 +151,7 @@ def format_hours_to_hms(decimal_hours: float) -> str:
 
 # ─── Konfigurasi Halaman ───
 st.set_page_config(
-    page_title="DVRPTW | Farida Nuha",
+    page_title="DVRPTW | Nuha Bahiyya Al Faridha",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -251,18 +251,17 @@ if menu == "Beranda":
     sebuah permasalahan optimasi rute kendaraan di mana **pesanan pelanggan dapat muncul secara
     dinamis** selama proses distribusi berlangsung.
 
-    Permasalahan diselesaikan dengan kombinasi tiga algoritma:
-    - **Nearest Neighbor Heuristic** untuk konstruksi solusi awal dari pelanggan statis.
-    - **Cheapest Insertion** untuk penyisipan pelanggan dinamis ke rute yang sudah berjalan.
-    - **Randomized Variable Neighborhood Descent (RVND)** sebagai metode pencarian lokal
-      untuk meminimalkan total jarak tempuh.
+    Permasalahan diselesaikan dengan kombinasi metode optimasi metaheuristik:
+    - **Sequential Insertion Heuristic** untuk konstruksi solusi awal dari pelanggan statis.
+    - **Cheapest Insertion** untuk penyisipan pelanggan dinamis ke rute yang sudah berjalan secara real-time.
+    - **Iterated Local Search (ILS)** yang mengombinasikan **Local Search deterministik**, **RVND (Randomized Variable Neighborhood Descent)**, dan **Perturbasi** untuk meminimalkan total jarak tempuh secara optimal.
     """)
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.markdown("#### Nearest Neighbor")
+        st.markdown("#### Sequential Insertion")
         st.caption(
-            "Konstruksi rute awal dengan menelusuri pelanggan terdekat "
-            "yang masih layak dikunjungi dari segi kapasitas dan waktu."
+            "Membangun rute awal dengan menyisipkan pelanggan belum dikunjungi secara sekuensial "
+            "ke posisi terbaik di rute berjalan dengan biaya tambahan paling minimal."
         )
     with c2:
         st.markdown("#### Cheapest Insertion")
@@ -271,10 +270,10 @@ if menu == "Beranda":
             "rute yang sudah berjalan, tanpa mengganggu node committed."
         )
     with c3:
-        st.markdown("#### RVND Local Search")
+        st.markdown("#### Metaheuristik ILS & RVND")
         st.caption(
-            "Optimasi iteratif menggunakan 5 struktur neighborhood: "
-            "2-Opt, Or-Opt, Exchange, Relocate, Swap(1,1)."
+            "Optimasi berlapis menggunakan Local Search (2-Opt, Or-Opt, Exchange), RVND (5 struktur lingkungan), "
+            "dan Perturbasi acak untuk membebaskan solusi dari optimum lokal."
         )
 
     st.markdown("---")
@@ -979,8 +978,8 @@ elif menu == "Analisis Hasil":
                     fig_net.add_trace(go.Scatter(
                         x=[mx], y=[my],
                         mode="text",
-                        text=[f"{seg_dist:.0f}"],
-                        textfont=dict(size=9, color="#64748B"),
+                        text=[f"<i>{seg_dist:.1f} km</i>"],
+                        textfont=dict(size=10, color="#64748B", family="Inter"),
                         showlegend=False,
                         hoverinfo="skip",
                     ))
@@ -989,11 +988,11 @@ elif menu == "Analisis Hasil":
             fig_net.add_trace(go.Scatter(
                 x=[positions[0][0]], y=[positions[0][1]],
                 mode="markers+text",
-                marker=dict(size=22, color="#0F172A", symbol="square",
+                marker=dict(size=28, color="#0F172A", symbol="square",
                             line=dict(width=3, color="#3B82F6")),
-                text=["Depot"],
+                text=["<b>Depot</b>"],
                 textposition="bottom center",
-                textfont=dict(size=12, color="#0F172A", family="Inter"),
+                textfont=dict(size=15, color="#0F172A", family="Inter"),
                 name="Depot",
                 hovertemplate="Depot (Node 0)<extra></extra>",
             ))
@@ -1010,11 +1009,11 @@ elif menu == "Analisis Hasil":
                 fig_net.add_trace(go.Scatter(
                     x=[positions[node][0]], y=[positions[node][1]],
                     mode="markers+text",
-                    marker=dict(size=16, color=color_node, symbol=symbol,
+                    marker=dict(size=24, color=color_node, symbol=symbol,
                                 line=dict(width=2, color="white")),
-                    text=[str(node)],
-                    textposition="top center",
-                    textfont=dict(size=11, color="#0F172A", family="Inter"),
+                    text=[f"<b>{node}</b>"],
+                    textposition="middle center",
+                    textfont=dict(size=15, color="white", family="Inter"),
                     name=f"Plg {node} ({tipe_str})",
                     hovertemplate=(
                         f"Pelanggan {node} ({tipe_str})<br>"
@@ -1032,12 +1031,13 @@ elif menu == "Analisis Hasil":
                 legend=dict(
                     orientation="h", yanchor="bottom", y=1.02,
                     xanchor="center", x=0.5,
-                    font=dict(size=11),
+                    font=dict(size=13),
                 ),
                 xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                 yaxis=dict(showgrid=False, zeroline=False, showticklabels=False,
                            scaleanchor="x", scaleratio=1),
                 margin=dict(l=20, r=20, t=60, b=20),
+                hoverlabel=dict(font_size=12, font_family="Inter"),
             )
             st.plotly_chart(fig_net, use_container_width=True)
 
@@ -1045,7 +1045,7 @@ elif menu == "Analisis Hasil":
             st.markdown("""
             **Legenda:**
             🔵 Pelanggan Statis — 🔴 Pelanggan Dinamis — ⬛ Depot Pusat —
-            Angka pada garis = jarak antar node (km)
+            *Angka miring abu-abu pada garis (e.g., 4.0 km) = jarak antar segmen rute*
             """)
 
             # Grafik distribusi muatan per kendaraan
@@ -1080,6 +1080,7 @@ elif menu == "Analisis Hasil":
                 marker_color="#1E40AF",
                 text=load_df["Muatan (kg)"].apply(lambda x: f"{x:.0f} kg"),
                 textposition="auto",
+                textfont=dict(size=14),
             ))
             fig_load.add_trace(go.Bar(
                 x=load_df["Kendaraan"], y=load_df["Sisa Kapasitas (kg)"],
@@ -1087,6 +1088,7 @@ elif menu == "Analisis Hasil":
                 marker_color="#BFDBFE",
                 text=load_df["Sisa Kapasitas (kg)"].apply(lambda x: f"{x:.0f} kg"),
                 textposition="auto",
+                textfont=dict(size=14),
             ))
             fig_load.update_layout(
                 barmode="stack",
@@ -1094,7 +1096,8 @@ elif menu == "Analisis Hasil":
                 plot_bgcolor="#F8FAFC",
                 height=350,
                 font=dict(family="Inter"),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, font=dict(size=13)),
+                hoverlabel=dict(font_size=12, font_family="Inter"),
             )
             fig_load.add_hline(
                 y=depot_obj.capacity,
@@ -1120,23 +1123,26 @@ elif menu == "Analisis Hasil":
             m_un = res_un["metrics"]
             m_op = res_op["metrics"]
 
-            st.markdown("### ⚡ Analisis Perbaikan Rute: Sebelum vs Setelah Optimasi RVND")
+            st.markdown("### ⚡ Analisis Perbaikan Rute: Sebelum vs Setelah Optimasi ILS & RVND")
             st.caption(
-                "Halaman ini membandingkan kinerja rute heuristik dasar (Nearest Neighbor + Cheapest Insertion) "
-                "dengan rute yang telah disempurnakan secara iteratif menggunakan Randomized Variable Neighborhood Descent (RVND)."
+                "Halaman ini membandingkan kinerja rute heuristik dasar (Sequential Insertion + Cheapest Insertion) "
+                "dengan rute yang telah disempurnakan secara dinamis menggunakan Iterated Local Search (ILS) yang mengintegrasikan RVND."
             )
             
-            with st.expander("ℹ️ Apa itu Optimasi RVND?"):
+            with st.expander("ℹ️ Apa itu Optimasi ILS & RVND?"):
                 st.markdown("""
-                **RVND (Randomized Variable Neighborhood Descent)** adalah metode pencarian lokal yang secara iteratif memperbaiki rute dengan mengeksplorasi 5 struktur neighborhood:
+                **Iterated Local Search (ILS)** dikombinasikan dengan **RVND (Randomized Variable Neighborhood Descent)** bekerja dengan alur bertahap:
                 
-                1. **2-Opt**: Membalik urutan segmen rute untuk menghilangkan persilangan jalur.
-                2. **Or-Opt**: Memindahkan 1-2 pelanggan berurutan ke posisi lain dalam rute yang sama.
-                3. **Exchange**: Menukar posisi dua pelanggan dalam satu rute.
-                4. **Relocate**: Memindahkan satu pelanggan dari satu rute ke rute lain.
-                5. **Swap(1,1)**: Menukar satu pelanggan antar dua rute berbeda.
+                1. **Local Search (Intra-Route)**: Menjalankan optimasi deterministik 2-Opt, Or-Opt, dan Exchange pada setiap rute.
+                2. **RVND (Inter & Intra-Route)**: Mengacak penggunaan 5 operator neighborhood secara acak:
+                   - **2-Opt**: Membalik urutan segmen rute untuk menghilangkan persilangan jalur.
+                   - **Or-Opt**: Memindahkan 1-2 pelanggan berurutan ke posisi lain dalam satu rute.
+                   - **Exchange**: Menukar posisi dua pelanggan dalam satu rute.
+                   - **Relocate**: Memindahkan satu pelanggan dari satu rute ke rute lain.
+                   - **Swap(1,1)**: Menukar satu pelanggan antar dua rute berbeda.
+                3. **Perturbasi (Perturbation)**: Melakukan pengacakan layak terkontrol pada rute untuk menghindari jebakan optimum lokal (*local optima*), kemudian melakukan siklus pencarian lokal kembali.
                 
-                Algoritma ini hanya memodifikasi bagian rute yang belum dikunjungi (uncommitted nodes) untuk menjaga konsistensi operasional kendaraan yang sedang berjalan.
+                Proses ini menjamin rute yang dihasilkan jauh lebih efisien dengan tetap menjaga batas non-preemption.
                 """)
 
             # Perbedaan metrik
@@ -1162,7 +1168,7 @@ elif menu == "Analisis Hasil":
                     delta=f"-{dist_diff:.2f} km (-{dist_pct:.2f}%)" if dist_diff > 0 else "0.00 km (0.00%)",
                     delta_color="inverse"
                 )
-                st.caption(f"Sebelum: `{dist_un:.2f} km` ➔ Setelah: `{dist_op:.2f} km`")
+                st.markdown(f"<div style='font-size: 13.5px; font-weight: 600; color: #1E293B; margin-top: -12px; margin-bottom: 8px;'>Sebelum: <span style='color: #64748B; font-weight: bold;'>{dist_un:.2f} km</span> &nbsp;➔&nbsp; Setelah: <span style='color: #10B981; font-weight: 800;'>{dist_op:.2f} km</span></div>", unsafe_allow_html=True)
             with c2:
                 st.metric(
                     "Total Waktu Operasional",
@@ -1170,7 +1176,7 @@ elif menu == "Analisis Hasil":
                     delta=f"-{time_diff:.4f} jam (-{time_pct:.2f}%)" if time_diff > 0 else "0.00 jam (0.00%)",
                     delta_color="inverse"
                 )
-                st.caption(f"Sebelum: `{time_un:.4f} jam` ({format_hours_to_hms(time_un)}) ➔ Setelah: `{time_op:.4f} jam` ({format_hours_to_hms(time_op)})")
+                st.markdown(f"<div style='font-size: 13.5px; font-weight: 600; color: #1E293B; margin-top: -12px; margin-bottom: 8px;'>Sebelum: <span style='color: #64748B; font-weight: bold;'>{time_un:.4f} jam</span> <span style='font-size: 13.5px; color: #64748B;'>({format_hours_to_hms(time_un)})</span> &nbsp;➔&nbsp; Setelah: <span style='color: #10B981; font-weight: 800;'>{time_op:.4f} jam</span> <span style='font-size: 13.5px; color: #10B981; font-weight: bold;'>({format_hours_to_hms(time_op)})</span></div>", unsafe_allow_html=True)
             with c3:
                 st.metric(
                     "Kendaraan Terpakai",
@@ -1178,17 +1184,17 @@ elif menu == "Analisis Hasil":
                     delta=f"-{veh_diff} Kendaraan" if veh_diff > 0 else "0",
                     delta_color="inverse" if veh_diff > 0 else "off"
                 )
-                st.caption(f"Sebelum: `{veh_un} mobil` ➔ Setelah: `{veh_op} mobil`")
+                st.markdown(f"<div style='font-size: 13.5px; font-weight: 600; color: #1E293B; margin-top: -12px; margin-bottom: 8px;'>Sebelum: <span style='color: #64748B; font-weight: bold;'>{veh_un} mobil</span> &nbsp;➔&nbsp; Setelah: <span style='color: #10B981; font-weight: 800;'>{veh_op} mobil</span></div>", unsafe_allow_html=True)
             
             with st.expander("ℹ️ Penjelasan Metrik Perbandingan"):
                 st.markdown("""
-                **Total Jarak Tempuh**: Pengurangan jarak menunjukkan efisiensi rute. Nilai negatif (hijau) berarti RVND berhasil memangkas jarak tempuh.
+                **Total Jarak Tempuh**: Pengurangan jarak menunjukkan efisiensi rute. Nilai negatif (hijau) berarti ILS & RVND berhasil memangkas jarak tempuh.
                 
                 **Total Waktu Operasional**: Pengurangan waktu berarti armada dapat menyelesaikan pengiriman lebih cepat, menghemat biaya operasional.
                 
-                **Kendaraan Terpakai**: Jika jumlah kendaraan berkurang, berarti RVND berhasil mengkonsolidasikan rute sehingga lebih sedikit armada yang dibutuhkan.
+                **Kendaraan Terpakai**: Jika jumlah kendaraan berkurang, berarti ILS & RVND berhasil mengkonsolidasikan rute sehingga lebih sedikit armada yang dibutuhkan.
                 
-                **Delta (Perubahan)**: Angka negatif dengan warna hijau menunjukkan perbaikan (pengurangan biaya). Semakin besar persentase pengurangan, semakin efektif optimasi RVND.
+                **Delta (Perubahan)**: Angka negatif dengan warna hijau menunjukkan perbaikan (pengurangan biaya). Semakin besar persentase pengurangan, semakin efektif optimasi ILS & RVND.
                 """)
 
             st.markdown("---")
@@ -1207,7 +1213,7 @@ elif menu == "Analisis Hasil":
                     "Rata-rata Muatan per Kendaraan",
                     "Rata-rata Jarak per Kendaraan",
                 ],
-                "Sebelum Optimasi (Nearest Neighbor + Cheapest Insertion)": [
+                "Sebelum Optimasi (Sequential Insertion + Cheapest Insertion)": [
                     f"{dist_un:.2f} km",
                     f"{time_un:.4f} jam",
                     format_hours_to_hms(time_un),
@@ -1215,7 +1221,7 @@ elif menu == "Analisis Hasil":
                     f"{avg_ld_un:.0f} kg",
                     f"{dist_un / max(veh_un, 1):.2f} km",
                 ],
-                "Setelah Optimasi (RVND Local Search)": [
+                "Setelah Optimasi (ILS & RVND Metaheuristic)": [
                     f"{dist_op:.2f} km",
                     f"{time_op:.4f} jam",
                     format_hours_to_hms(time_op),
@@ -1235,15 +1241,15 @@ elif menu == "Analisis Hasil":
             st.dataframe(comp_rvnd_df, hide_index=True, use_container_width=True)
 
             st.markdown("---")
-            st.markdown("#### 📈 Visualisasi Efisiensi Optimasi RVND")
+            st.markdown("#### 📈 Visualisasi Efisiensi Optimasi ILS & RVND")
             
             with st.expander("ℹ️ Cara Membaca Grafik Perbandingan"):
                 st.markdown("""
-                **Grafik Batang Jarak (Kiri)**: Membandingkan total jarak tempuh sebelum dan setelah optimasi RVND. Batang merah menunjukkan kondisi awal (lebih panjang), batang hijau menunjukkan hasil optimasi (lebih pendek).
+                **Grafik Batang Jarak (Kiri)**: Membandingkan total jarak tempuh sebelum dan setelah optimasi ILS & RVND. Batang merah menunjukkan kondisi awal (lebih panjang), batang hijau menunjukkan hasil optimasi (lebih pendek).
                 
                 **Grafik Batang Waktu (Kanan)**: Membandingkan total waktu operasional dalam jam desimal. Batang oranye menunjukkan kondisi awal, batang hijau menunjukkan hasil optimasi.
                 
-                **Interpretasi**: Semakin besar selisih tinggi antara batang merah/oranye dengan batang hijau, semakin besar penghematan yang dihasilkan oleh algoritma RVND.
+                **Interpretasi**: Semakin besar selisih tinggi antara batang merah/oranye dengan batang hijau, semakin besar penghematan yang dihasilkan oleh algoritma ILS & RVND.
                 """)
             
             col_g1, col_g2 = st.columns(2)
@@ -1264,6 +1270,7 @@ elif menu == "Analisis Hasil":
                     plot_bgcolor="#F8FAFC",
                     height=300,
                     font=dict(family="Inter"),
+                    hoverlabel=dict(font_size=12, font_family="Inter"),
                 )
                 st.plotly_chart(fig_g1, use_container_width=True)
                 
@@ -1283,12 +1290,12 @@ elif menu == "Analisis Hasil":
                     plot_bgcolor="#F8FAFC",
                     height=300,
                     font=dict(family="Inter"),
+                    hoverlabel=dict(font_size=12, font_family="Inter"),
                 )
                 st.plotly_chart(fig_g2, use_container_width=True)
 
             # 📝 KESIMPULAN AKADEMIS
             st.markdown("---")
-            st.markdown("### 📝 Kesimpulan Akademis Permasalahan DVRPTW (Farida Nuha)")
             
             # Hitung rata-rata utilisasi untuk kesimpulan
             avg_util = sum(
@@ -1296,8 +1303,9 @@ elif menu == "Analisis Hasil":
                 for rt in res_op["final_routes"]
             ) / (len(res_op["final_routes"]) * depot_obj.capacity) * 100 if res_op["final_routes"] else 0
 
-            st.markdown(f"""
-            [!NOTE]
+            with st.expander("📝 **Kesimpulan Permasalahan DVRPTW**", expanded=True):
+                st.markdown(f"""
+                [!NOTE]
             **1. Rasionalisasi Penggunaan Jam Desimal (Decimal Hours)**
             - Seluruh durasi dan matriks waktu dalam sistem ini direpresentasikan dalam **Jam Desimal** (misalnya `0.9005 jam` atau `1.2005 jam`). Representasi ini digunakan agar komputasi matematis (seperti pembagian jarak terhadap kecepatan rata-rata $v = 60 \\text{{ km/jam}}$) tetap presisi tanpa ada pembulatan berulang.
             - **Konversi ke Waktu Operasional**:
@@ -1306,11 +1314,11 @@ elif menu == "Analisis Hasil":
               - Aplikasi telah dilengkapi pengonversi otomatis ke format **HMS** (Jam-Menit-Detik) di seluruh halaman untuk memudahkan pembacaan operasional di lapangan.
             
             [!IMPORTANT]
-            **2. Efektivitas Algoritma RVND (Pencarian Lokal)**
-            - Metode optimasi **RVND (Randomized Variable Neighborhood Descent)** terbukti **sangat efektif** dalam meningkatkan efisiensi distribusi.
-            - Algoritma RVND berhasil meminimalkan total jarak tempuh dari **{dist_un:.2f} km** menjadi **{dist_op:.2f} km** (menghemat **{dist_diff:.2f} km** atau **{dist_pct:.2f}%** jarak tempuh).
+            **2. Efektivitas Algoritma ILS & RVND (Optimasi Metaheuristik)**
+            - Kombinasi metode **Sequential Insertion** sebagai rute awal dan **ILS & RVND (Iterated Local Search & Randomized Variable Neighborhood Descent)** terbukti **sangat efektif** dalam meningkatkan efisiensi distribusi.
+            - Algoritma berhasil meminimalkan total jarak tempuh dari **{dist_un:.2f} km** menjadi **{dist_op:.2f} km** (menghemat **{dist_diff:.2f} km** atau **{dist_pct:.2f}%** jarak tempuh).
             - Durasi waktu operasional armada juga terpangkas dari **{time_un:.4f} jam** ({format_hours_to_hms(time_un)}) menjadi **{time_op:.4f} jam** ({format_hours_to_hms(time_op)}) (hemat **{time_pct:.2f}%** waktu kerja).
-            - Peningkatan efisiensi ini terjadi karena RVND secara dinamis mengeksplorasi 5 jenis struktur lingkungan (*neighborhood structures*: 2-Opt, Or-Opt, Exchange, Relocate, Swap) untuk menata ulang urutan pengiriman yang belum dilewati kendaraan (*uncommitted nodes*).
+            - Hasil ini membuktikan keunggulan konstruksi *Sequential Insertion* serta kekuatan metaheuristik ILS yang menggunakan *perturbasi* untuk mendobrak optimum lokal sehingga didapatkan rute global yang jauh lebih optimal bagi armada logistik.
             
             [!TIP]
             **3. Analisis Kelayakan Solusi (Feasibility & Fleet Utility)**
@@ -1322,7 +1330,7 @@ elif menu == "Analisis Hasil":
             [!WARNING]
             **4. Efek Ketidakpastian Informasi (Dynamic Overhead Gap)**
             - Nilai *Dynamic Overhead Gap* sebesar **{m_op['dynamic_gap_pct']:.2f}%** menunjukkan biaya tambahan (*overhead*) berupa selisih jarak yang harus dibayar akibat sifat kedatangan pesanan yang dinamis (muncul mendadak saat rute sudah berjalan) dibandingkan dengan solusi *offline* ideal di mana semua pesanan sudah diketahui sejak awal.
-            - Nilai gap yang sangat kecil ini membuktikan bahwa strategi **Cheapest Insertion** untuk penyisipan pelanggan dinamis, dikombinasikan dengan re-optimasi **RVND**, mampu meminimalkan efek negatif dari ketidakpastian informasi secara real-time.
+            - Nilai gap yang sangat kecil ini membuktikan bahwa strategi **Cheapest Insertion** untuk penyisipan pelanggan dinamis, dikombinasikan dengan re-optimasi **ILS & RVND**, mampu meminimalkan efek negatif dari ketidakpastian informasi secara real-time.
             """)
 
         # ═══ TAB 4: LOG KEJADIAN DINAMIS ═══
@@ -1394,6 +1402,7 @@ elif menu == "Analisis Hasil":
                         plot_bgcolor="#F8FAFC",
                         height=380,
                         font=dict(family="Inter"),
+                        hoverlabel=dict(font_size=12, font_family="Inter"),
                     )
                     st.plotly_chart(fig_flux, use_container_width=True)
 
@@ -1534,7 +1543,7 @@ elif menu == "Analisis Hasil":
                 marker_color=["#BFDBFE", "#1E40AF"],
                 text=[f"{ideal_dist:.2f} km", f"{final_dist_val:.2f} km"],
                 textposition="auto",
-                textfont=dict(size=14, color="white"),
+                textfont=dict(size=16, color="#0F172A", family="Inter"),
             ))
             fig_comp.update_layout(
                 yaxis_title="Jarak Tempuh (km)",
@@ -1542,6 +1551,7 @@ elif menu == "Analisis Hasil":
                 height=360,
                 font=dict(family="Inter"),
                 showlegend=False,
+                hoverlabel=dict(font_size=12, font_family="Inter"),
             )
             st.plotly_chart(fig_comp, use_container_width=True)
 
@@ -1551,9 +1561,9 @@ elif menu == "Analisis Hasil":
                 
                 with st.expander("ℹ️ Cara Membaca Grafik Jarak per Rute"):
                     st.markdown("""
-                    **Batang Biru Muda**: Jarak tempuh setiap kendaraan pada solusi statis ideal (offline).
+                    **Batang Biru Muda (Statis Ideal)**: Jarak tempuh setiap kendaraan pada solusi statis ideal (offline).
                     
-                    **Batang Biru Tua**: Jarak tempuh setiap kendaraan pada solusi dinamis (online).
+                    **Batang Biru Tua (Dinamis)**: Jarak tempuh setiap kendaraan pada solusi dinamis (online).
                     
                     **Interpretasi**: Grafik ini menunjukkan distribusi beban jarak antar kendaraan. Idealnya, jarak per kendaraan relatif seimbang (tidak ada satu kendaraan yang jauh lebih panjang dari yang lain). Perbedaan tinggi batang menunjukkan dampak penyisipan dinamis pada masing-masing rute.
                     """)
@@ -1574,6 +1584,7 @@ elif menu == "Analisis Hasil":
                     marker_color="#93C5FD",
                     text=[f"{d:.1f}" for d in ideal_dists],
                     textposition="auto",
+                    textfont=dict(size=14),
                 ))
                 fig_per_route.add_trace(go.Bar(
                     x=route_labels, y=final_dists,
@@ -1581,6 +1592,7 @@ elif menu == "Analisis Hasil":
                     marker_color="#1E40AF",
                     text=[f"{d:.1f}" for d in final_dists],
                     textposition="auto",
+                    textfont=dict(size=14),
                 ))
                 fig_per_route.update_layout(
                     barmode="group",
@@ -1591,7 +1603,9 @@ elif menu == "Analisis Hasil":
                     legend=dict(
                         orientation="h", yanchor="bottom", y=1.02,
                         xanchor="center", x=0.5,
+                        font=dict(size=13),
                     ),
+                    hoverlabel=dict(font_size=12, font_family="Inter"),
                 )
                 st.plotly_chart(fig_per_route, use_container_width=True)
 
@@ -1610,18 +1624,19 @@ elif menu == "Analisis Hasil":
                 values=pie_values,
                 marker=dict(colors=pie_colors),
                 textinfo="label+percent",
-                textfont=dict(size=11),
+                textfont=dict(size=14),
                 hole=0.4,
             )])
             fig_pie.update_layout(
                 height=400,
                 font=dict(family="Inter"),
-                legend=dict(font=dict(size=10)),
+                legend=dict(font=dict(size=13)),
                 annotations=[dict(
-                    text=f"{sum(pie_values):.0f} kg",
-                    x=0.5, y=0.5, font_size=16, showarrow=False,
+                    text=f"<b>{sum(pie_values):.0f} kg</b>",
+                    x=0.5, y=0.5, font_size=20, showarrow=False,
                     font=dict(color="#1E3A5F", family="Inter"),
                 )],
+                hoverlabel=dict(font_size=12, font_family="Inter"),
             )
             st.plotly_chart(fig_pie, use_container_width=True)
 

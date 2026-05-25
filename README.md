@@ -10,7 +10,7 @@
 
 Aplikasi ini dikembangkan untuk menjawab tantangan manajemen logistik modern yang dinamis. Dalam operasional logistik dunia nyata, efisiensi bukan lagi sekadar pilihan, melainkan keharusan untuk bertahan. Namun, tantangan terbesar muncul ketika **pesanan pelanggan baru masuk secara mendadak** saat armada kendaraan sudah di perjalanan. Bagaimana menentukan rute terbaik secara real-time tanpa mengganggu pengiriman yang sedang berjalan?
 
-Sistem Pendukung Keputusan (SPK) cerdas ini dibangun secara khusus untuk memodelkan dan menyelesaikan **Dynamic Vehicle Routing Problem with Time Windows (DVRPTW)** menggunakan kombinasi algoritma **Nearest Neighbor**, **Cheapest Insertion**, dan **Randomized Variable Neighborhood Descent (RVND)**. Proses penjadwalan dan pengalihan rute dinamis yang sebelumnya rawan *human error* kini dapat dioptimalkan secara otomatis dan presisi secara matematis.
+Sistem Pendukung Keputusan (SPK) cerdas ini dibangun secara khusus untuk memodelkan dan menyelesaikan **Dynamic Vehicle Routing Problem with Time Windows (DVRPTW)** menggunakan kombinasi metaheuristik modern **Iterated Local Search (ILS)** yang mengintegrasikan **Sequential Insertion Heuristic**, **Cheapest Insertion**, **Deterministic Local Search**, dan **Randomized Variable Neighborhood Descent (RVND)** dengan mekanisme **Perturbasi Sekuensial**. Proses penjadwalan dan pengalihan rute dinamis yang sebelumnya rawan *human error* kini dapat dioptimalkan secara otomatis dan presisi secara matematis.
 
 ---
 
@@ -35,11 +35,12 @@ Berdasarkan studi kasus logistik, perencanaan rute secara manual memiliki celah 
 
 Fokus utama aplikasi ini adalah menghasilkan rute logistik dinamis yang **layak (feasible)** dan **paling efisien** dengan meminimalkan total jarak tempuh seluruh armada. Sistem mengombinasikan tiga algoritma tangguh:
 
-1. **Nearest Neighbor Heuristic**: Membangun rute awal secara cepat dari daftar pelanggan statis (pesanan yang sudah diketahui sejak awal hari) dengan mencari pelanggan terdekat yang masih layak dikunjungi.
+1. **Sequential Insertion Heuristic**: Membangun rute awal secara sekuensial dari daftar pelanggan statis (pesanan yang diketahui sejak awal hari) dengan menyisipkan node pelanggan secara bertahap pada posisi dengan biaya minimum dengan tetap menjaga feasibility kapasitas dan jendela waktu.
 2. **Cheapest Insertion**: Ketika pesanan dinamis baru muncul di tengah hari, sistem menyisipkannya ke posisi rute berjalan yang menghasilkan tambahan jarak (*insertion cost*) paling minimal, dengan tetap menaati batas non-preemption.
-3. **Randomized Variable Neighborhood Descent (RVND)**: Melakukan optimasi lokal (*local search*) secara iteratif pada sisa rute yang belum ditempuh menggunakan **5 struktur lingkungan (neighborhood structures)** secara acak untuk menata ulang urutan pengiriman agar lebih pendek:
-   - *Intra-Route Operators*: **2-Opt**, **Or-Opt**, **Exchange** (mengoptimalkan urutan dalam satu rute).
-   - *Inter-Route Operators*: **Relocate**, **Swap(1,1)** (memindahkan atau menukar pelanggan antar rute untuk menyeimbangkan muatan).
+3. **Iterated Local Search (ILS) & RVND**: Melakukan pencarian metaheuristik secara iteratif pada rute uncommitted (sisa rute yang belum ditempuh) dengan alur:
+   - **Local Search (Intra-Route)**: Mengoptimalkan rute secara deterministik dengan operator *2-Opt*, *Or-Opt*, dan *Exchange*.
+   - **RVND (Randomized Variable Neighborhood Descent)**: Mengacak penggunaan 5 operator neighborhood secara inter-route (*Relocate*, *Swap(1,1)*) dan intra-route (*2-Opt*, *Or-Opt*, *Exchange*) untuk mereduksi jarak tempuh global secara optimal.
+   - **Sequential Perturbation (Perturbasi)**: Melakukan pengacakan layak terkontrol untuk melepaskan solusi dari jebakan optimum lokal (*local optima*) sebelum dievaluasi ulang oleh mesin pencarian lokal.
 
 ---
 
@@ -86,7 +87,7 @@ Aplikasi akan berjalan di `http://localhost:8501`
 
 ```
 ├── app.py              # Dashboard Streamlit Utama (UI & Visualisasi)
-├── solver.py           # Mesin Optimasi DVRPTW (NN, Insertion, & RVND)
+├── solver.py           # Mesin Optimasi DVRPTW (Sequential Insertion, Cheapest Insertion, ILS, & RVND)
 ├── theme.py            # Desain Sistem & Gaya CSS Kustom (Professional Blue)
 ├── requirements.txt    # Daftar Pustaka Dependensi Python
 ├── README.md           # Dokumentasi Proyek
@@ -106,7 +107,7 @@ Aplikasi akan berjalan di `http://localhost:8501`
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │              FASE 1: KONSTRUKSI RUTE AWAL                       │
-│  Nearest Neighbor Heuristic → Rute dari pelanggan statis       │
+│  Sequential Insertion Heuristic → Rute layak pelanggan statis   │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -118,9 +119,9 @@ Aplikasi akan berjalan di `http://localhost:8501`
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│              FASE 3: OPTIMASI RVND                              │
-│  Local Search pada uncommitted nodes → 5 neighborhood          │
-│  structures (2-Opt, Or-Opt, Exchange, Relocate, Swap)          │
+│              FASE 3: METAHEURISTIK ILS & RVND                   │
+│  Penyempurnaan Rute uncommitted → Deterministic Local Search    │
+│  & RVND (5 operators) → Sequential Perturbation                 │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -147,11 +148,11 @@ Aplikasi akan berjalan di `http://localhost:8501`
 
 ## 📚 Referensi Algoritma
 
-1. **Nearest Neighbor Heuristic** — Konstruksi solusi awal dengan greedy approach
+1. **Sequential Insertion Heuristic** — Konstruksi solusi rute awal yang robust & feasible
 2. **Cheapest Insertion** — Penyisipan pelanggan dinamis dengan biaya tambahan minimal
-3. **RVND (Randomized Variable Neighborhood Descent)** — Optimasi lokal dengan randomisasi urutan operator
+3. **Iterated Local Search (ILS) & RVND Metaheuristic** — Optimasi pencarian lokal metaheuristik iteratif dengan perturbasi sekuensial dan 5 operator neighborhood acak
 
 
 ---
 
-*© 2026 — Farida Nuha · Program Studi Matematika - Universitas Negeri Malang*
+*© 2026 — Nuha Bahiyya Al Faridha (220312609348) · Program Studi Matematika - Universitas Negeri Malang*

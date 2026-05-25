@@ -1,7 +1,7 @@
 """
 theme.py — Tema Dark Navy Blue Premium untuk Dashboard DVRPTW
 ===============================================================
-Desain profesional dengan estetika biru tua akademis untuk skripsi Farida Nuha.
+Desain profesional dengan estetika biru tua akademis untuk tugas akhir Nuha Bahiyya Al Faridha.
 Universitas Negeri Malang — Matematika
 """
 
@@ -335,7 +335,7 @@ HERO_BANNER = """
     <div class="subtitle" style="color: #60A5FA !important;">Dynamic Vehicle Routing Problem with Time Windows</div>
     <div class="hero-title" style="font-size: 32px; font-weight: 800; color: #FFFFFF !important; margin: 0 0 4px 0; letter-spacing: -0.3px;">DVRPTW Optimizer Dashboard</div>
     <div class="divider"></div>
-    <div class="author" style="color: #94A3B8 !important; font-size: 15px;">Farida Nuha · Universitas Negeri Malang — Matematika</div>
+    <div class="author" style="color: #94A3B8 !important; font-size: 15px;">Nuha Bahiyya Al Faridha · 220312609348 · Universitas Negeri Malang — Matematika</div>
 </div>
 """
 
@@ -343,7 +343,7 @@ HERO_BANNER = """
 COVER_PAGE = """
 <div class="cover-container">
     <div class="cover-card">
-        <div class="cover-badge" style="color: #60A5FA !important;">Skripsi · Matematika · 2026</div>
+        <div class="cover-badge" style="color: #60A5FA !important;">Tugas Akhir · Matematika · 2026</div>
         <div class="cover-title" style="color: #FFFFFF !important; font-size: 40px; font-weight: 800; line-height: 1.2; margin: 0 0 16px 0; letter-spacing: -0.5px;">Dynamic Vehicle Routing Problem<br>with Time Windows</div>
         <div class="cover-line"></div>
         <div class="cover-subtitle" style="color: #E2E8F0 !important; font-size: 18px; margin: 0 0 32px 0; line-height: 1.6;">
@@ -354,7 +354,11 @@ COVER_PAGE = """
         <div class="cover-info">
             <div class="cover-info-item">
                 <div class="cover-info-label" style="color: #94A3B8 !important;">Penulis</div>
-                <div class="cover-info-value" style="color: #FFFFFF !important;">Farida Nuha</div>
+                <div class="cover-info-value" style="color: #FFFFFF !important;">Nuha Bahiyya Al Faridha</div>
+            </div>
+            <div class="cover-info-item">
+                <div class="cover-info-label" style="color: #94A3B8 !important;">NIM</div>
+                <div class="cover-info-value" style="color: #FFFFFF !important;">220312609348</div>
             </div>
             <div class="cover-info-item">
                 <div class="cover-info-label" style="color: #94A3B8 !important;">Program Studi</div>
@@ -400,7 +404,7 @@ SIDEBAR_FOOTER = """
     border: 1px solid rgba(59,130,246,0.15); text-align: center;
 ">
     <div style="font-size: 14px; margin: 0; opacity: 0.7; color: #94A3B8 !important;">
-        Nearest Neighbor + RVND<br>Farida Nuha · 2026
+        Nearest Neighbor + RVND<br>Nuha Bahiyya Al Faridha · 2026
     </div>
 </div>
 """

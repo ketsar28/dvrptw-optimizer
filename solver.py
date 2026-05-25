@@ -6,7 +6,7 @@ Kombinasi algoritma: Nearest Neighbor Heuristic (solusi awal)
 + Cheapest Insertion (penyisipan pelanggan dinamis)
 + RVND (Randomized Variable Neighborhood Descent) untuk optimasi lokal.
 
-Penulis  : Farida Nuha
+Penulis  : Nuha Bahiyya Al Faridha (NIM: 220312609348)
 Universitas Negeri Malang — Matematika
 
 Batasan Model:
@@ -179,77 +179,86 @@ def is_route_feasible(path: List[int], time_mtx: np.ndarray,
 
 
 # ─────────────────────────────────────────────────────────────
-# NEAREST NEIGHBOR — KONSTRUKSI SOLUSI AWAL
+# SEQUENTIAL INSERTION — KONSTRUKSI SOLUSI AWAL
 # ─────────────────────────────────────────────────────────────
 
-def nearest_neighbor(customer_ids: List[int],
-                     dist_mtx: np.ndarray,
-                     time_mtx: np.ndarray,
-                     customers: Dict[int, Customer],
-                     depot: Depot) -> List[Route]:
+def sequential_insertion(customer_ids: List[int],
+                         dist_mtx: np.ndarray,
+                         time_mtx: np.ndarray,
+                         customers: Dict[int, Customer],
+                         depot: Depot) -> List[Route]:
     """
-    Konstruksi solusi awal menggunakan Nearest Neighbor Heuristic.
-    Membangun rute satu per satu: mulai dari depot, kunjungi pelanggan
-    terdekat yang masih layak (kapasitas & waktu), ulangi sampai semua dilayani.
-
-    Jumlah rute dibatasi sesuai depot.max_vehicles (2 kendaraan).
-    Jika kapasitas/waktu habis di satu rute, buka rute baru selama
-    belum melebihi batas kendaraan.
+    Konstruksi solusi awal menggunakan Sequential Insertion Heuristic.
+    Membangun rute satu per satu secara sekuensial:
+    1. Pilih seed customer (pelanggan terjauh dari depot yang belum dikunjungi).
+    2. Inisialisasi rute baru [0, seed, 0].
+    3. Sementara rute masih layak (kapasitas & waktu), sisipkan pelanggan lain 
+       dari unvisited ke posisi terbaik di rute saat ini yang menghasilkan 
+       biaya penyisipan (cheapest cost) paling minimal.
+    4. Jika rute tidak dapat menampung pelanggan lagi, simpan rute tersebut 
+       dan buat rute baru jika jumlah kendaraan belum melebihi depot.max_vehicles.
     """
     unvisited = set(customer_ids)
     routes = []
     tw_limit = depot.tw_close - depot.tw_open
 
     while unvisited and len(routes) < depot.max_vehicles:
-        path = [0]
-        curr = 0
-        load = 0.0
-        t_used = 0.0
-
-        # Pilih pelanggan terdekat dari depot sebagai titik awal rute
-        first = min(unvisited, key=lambda c: dist_mtx[0][c])
-        c_data = customers[first]
-
-        # Cek kelayakan pelanggan pertama (demand + waktu pulang-pergi)
-        t_check = time_mtx[0][first] + c_data.service_time + time_mtx[first][0]
-        if c_data.demand > depot.capacity or t_check > tw_limit:
-            unvisited.discard(first)
+        # Pilih seed customer: pelanggan terjauh dari depot yang belum dikunjungi
+        # dan permintaannya muat di kendaraan
+        feasible_seeds = [c for c in unvisited if customers[c].demand <= depot.capacity]
+        if not feasible_seeds:
+            # Jika tidak ada pelanggan yang muat sama sekali, berhenti
+            break
+            
+        seed = max(feasible_seeds, key=lambda c: dist_mtx[0][c])
+        
+        # Uji kelayakan awal untuk rute [0, seed, 0]
+        t_check = time_mtx[0][seed] + customers[seed].service_time + time_mtx[seed][0]
+        if t_check > tw_limit:
+            # Jika seed ini saja tidak cukup waktu untuk pulang-pergi, hilangkan dari unvisited
+            unvisited.discard(seed)
             continue
-
-        path.append(first)
-        unvisited.discard(first)
-        load += c_data.demand
-        t_used += time_mtx[0][first] + c_data.service_time
-        curr = first
-
-        # Tambahkan pelanggan berikutnya yang paling dekat dan masih layak
+            
+        # Inisialisasi rute dengan seed
+        path = [0, seed, 0]
+        unvisited.discard(seed)
+        
+        # Sisipkan pelanggan lain secara sekuensial ke rute saat ini
         while True:
-            feasible = []
+            best_cost = float("inf")
+            best_cust = -1
+            best_pos = -1
+            
             for c in unvisited:
                 cd = customers[c]
-                new_load = load + cd.demand
-                new_time = (t_used + time_mtx[curr][c]
-                            + cd.service_time + time_mtx[c][0])
-                if new_load <= depot.capacity and new_time <= tw_limit:
-                    feasible.append(c)
-
-            if not feasible:
+                # Coba sisipkan c ke setiap posisi yang memungkinkan di dalam path (indeks 1 s.d len(path)-1)
+                for pos in range(1, len(path)):
+                    candidate_path = path[:pos] + [c] + path[pos:]
+                    
+                    # Cek kelayakan (kapasitas & waktu)
+                    if is_route_feasible(candidate_path, time_mtx, customers, depot):
+                        # Hitung biaya penyisipan: d(i, u) + d(u, j) - d(i, j)
+                        i_node = path[pos-1]
+                        j_node = path[pos]
+                        cost = dist_mtx[i_node][c] + dist_mtx[c][j_node] - dist_mtx[i_node][j_node]
+                        
+                        if cost < best_cost:
+                            best_cost = cost
+                            best_cust = c
+                            best_pos = pos
+                            
+            # Jika ditemukan pelanggan yang layak untuk disisipkan, lakukan penyisipan
+            if best_cust != -1:
+                path.insert(best_pos, best_cust)
+                unvisited.discard(best_cust)
+            else:
+                # Selesaikan rute saat ini karena tidak ada lagi yang layak disisipkan
                 break
-
-            next_node = min(feasible, key=lambda c: dist_mtx[curr][c])
-            path.append(next_node)
-            unvisited.discard(next_node)
-
-            cd = customers[next_node]
-            load += cd.demand
-            t_used += time_mtx[curr][next_node] + cd.service_time
-            curr = next_node
-
-        path.append(0)  # kembali ke depot
+                
         r = Route(path=path)
         r = update_route_metrics(r, dist_mtx, time_mtx, customers)
         routes.append(r)
-
+        
     return routes
 
 
@@ -658,6 +667,197 @@ def rvnd_optimize(routes: List[Route],
 
 
 # ─────────────────────────────────────────────────────────────
+# PENCARIAN LOKAL BERTURUT-TURUT (LOCAL SEARCH DETERMINISTIK)
+# ─────────────────────────────────────────────────────────────
+
+def local_search_optimize(routes: List[Route],
+                          dist_mtx: np.ndarray,
+                          time_mtx: np.ndarray,
+                          customers: Dict[int, Customer],
+                          depot: Depot,
+                          current_time: float = 0.0) -> List[Route]:
+    """
+    Menjalankan perbaikan intra-rute deterministik berturut-turut pada setiap rute:
+    Mencoba 2-Opt, Or-Opt, dan Exchange secara sekuensial hingga tidak ada perbaikan lagi.
+    Hanya mengubah node uncommitted.
+    """
+    optimized_routes = []
+    for r in routes:
+        r_copy = copy.deepcopy(r)
+        improved = True
+        while improved:
+            improved = False
+            # 1. Coba 2-Opt
+            r_copy, imp = two_opt_improve(r_copy, dist_mtx, time_mtx, customers, depot, current_time)
+            if imp:
+                improved = True
+                continue
+            # 2. Coba Or-Opt
+            r_copy, imp = or_opt_improve(r_copy, dist_mtx, time_mtx, customers, depot, current_time)
+            if imp:
+                improved = True
+                continue
+            # 3. Coba Exchange
+            r_copy, imp = exchange_improve(r_copy, dist_mtx, time_mtx, customers, depot, current_time)
+            if imp:
+                improved = True
+                continue
+        optimized_routes.append(r_copy)
+    return optimized_routes
+
+
+# ─────────────────────────────────────────────────────────────
+# PERTURBASI (PERTURBATION)
+# ─────────────────────────────────────────────────────────────
+
+def perturbation(routes: List[Route],
+                 dist_mtx: np.ndarray,
+                 time_mtx: np.ndarray,
+                 customers: Dict[int, Customer],
+                 depot: Depot,
+                 current_time: float = 0.0) -> List[Route]:
+    """
+    Melakukan perturbasi acak namun layak pada rute-rute yang ada:
+    Secara sekuensial memilih 1 node uncommitted secara acak dan memindahkannya ke posisi lain yang layak secara acak.
+    Ini membantu rute melarikan diri dari jebakan optimum lokal.
+    Melakukan hingga 2 pemindahan acak secara sekuensial (dihitung ulang tiap langkah agar indeks aman).
+    """
+    routes = copy.deepcopy(routes)
+    if len(routes) == 0:
+        return routes
+
+    # Lakukan maksimal 2 pemindahan sekuensial
+    for _ in range(2):
+        # 1. Kumpulkan semua node uncommitted yang bisa dipindahkan saat ini
+        movable_nodes = []
+        for r_idx, r in enumerate(routes):
+            c_idx = get_committed_index(r.path, time_mtx, customers, depot.tw_open, current_time)
+            start_pos = max(1, c_idx + 1)
+            # Pelanggan berada di antara start_pos dan len(r.path)-2 (karena indeks terakhir adalah depot 0)
+            for idx in range(start_pos, len(r.path) - 1):
+                node = r.path[idx]
+                movable_nodes.append((node, r_idx, idx))
+
+        if not movable_nodes:
+            break
+
+        # Pilih satu node secara acak untuk dipindahkan
+        node, orig_r_idx, orig_pos = random.choice(movable_nodes)
+        
+        # 2. Cari semua posisi penempatan baru yang layak di semua rute
+        feasible_targets = []
+        
+        for r_idx, r in enumerate(routes):
+            c_idx_t = get_committed_index(r.path, time_mtx, customers, depot.tw_open, current_time)
+            insert_start = max(1, c_idx_t + 1)
+            
+            if r_idx == orig_r_idx:
+                # Jika di rute yang sama, keluarkan node dulu
+                if orig_pos >= len(r.path):
+                    continue
+                path_without_node = r.path[:orig_pos] + r.path[orig_pos+1:]
+                c_idx_t_new = get_committed_index(path_without_node, time_mtx, customers, depot.tw_open, current_time)
+                insert_start_new = max(1, c_idx_t_new + 1)
+                for pos in range(insert_start_new, len(path_without_node)):
+                    candidate = path_without_node[:pos] + [node] + path_without_node[pos:]
+                    if is_route_feasible(candidate, time_mtx, customers, depot):
+                        feasible_targets.append((r_idx, pos, candidate))
+            else:
+                for pos in range(insert_start, len(r.path)):
+                    candidate = r.path[:pos] + [node] + r.path[pos:]
+                    
+                    # Rute asal juga harus layak setelah node dihapus
+                    if orig_pos >= len(routes[orig_r_idx].path):
+                        continue
+                    orig_path_new = routes[orig_r_idx].path[:orig_pos] + routes[orig_r_idx].path[orig_pos+1:]
+                    if (is_route_feasible(candidate, time_mtx, customers, depot) and 
+                        is_route_feasible(orig_path_new, time_mtx, customers, depot)):
+                        feasible_targets.append((r_idx, pos, candidate))
+                        
+        if feasible_targets:
+            # Pilih satu target secara acak dan terapkan pemindahan
+            tar_r_idx, tar_pos, tar_path = random.choice(feasible_targets)
+            
+            if tar_r_idx == orig_r_idx:
+                routes[orig_r_idx].path = tar_path
+                routes[orig_r_idx] = update_route_metrics(routes[orig_r_idx], dist_mtx, time_mtx, customers)
+            else:
+                # Hapus dari rute asal
+                if orig_pos < len(routes[orig_r_idx].path):
+                    routes[orig_r_idx].path = routes[orig_r_idx].path[:orig_pos] + routes[orig_r_idx].path[orig_pos+1:]
+                    routes[orig_r_idx] = update_route_metrics(routes[orig_r_idx], dist_mtx, time_mtx, customers)
+                    
+                    # Sisipkan ke rute tujuan
+                    routes[tar_r_idx].path = tar_path
+                    routes[tar_r_idx] = update_route_metrics(routes[tar_r_idx], dist_mtx, time_mtx, customers)
+                
+        # Bersihkan rute kosong jika ada agar indeks berikutnya tidak kacau
+        routes = [r for r in routes if not r.is_empty]
+    return routes
+
+
+# ─────────────────────────────────────────────────────────────
+# ITERATED LOCAL SEARCH (ILS) METAHEURISTIC
+# ─────────────────────────────────────────────────────────────
+
+def iterated_local_search(routes: List[Route],
+                          dist_mtx: np.ndarray,
+                          time_mtx: np.ndarray,
+                          customers: Dict[int, Customer],
+                          depot: Depot,
+                          current_time: float = 0.0,
+                          max_iters: int = 15) -> Tuple[List[Route], List[Dict]]:
+    """
+    Iterated Local Search (ILS) Metaheuristic:
+    1. Inisialisasi: Mulai dari rute input (yang didapatkan dari sequential_insertion atau cheapest_insertion).
+    2. Optimasi awal: Terapkan Local Search deterministik diikuti oleh RVND.
+    3. Iterasi:
+       a. Terapkan Perturbasi (Perturbation) untuk mengacak rute sedikit secara layak.
+       b. Terapkan Local Search deterministik pada rute terperturbasi.
+       c. Terapkan RVND pada hasil local search.
+       d. Jika hasil baru lebih baik (total jarak lebih kecil), update best_routes.
+    """
+    log = []
+    
+    # Fase 1 & 2: Local Search deterministik awal dilanjutkan dengan RVND
+    curr_routes = copy.deepcopy(routes)
+    curr_routes = local_search_optimize(curr_routes, dist_mtx, time_mtx, customers, depot, current_time)
+    curr_routes, rvnd_log = rvnd_optimize(curr_routes, dist_mtx, time_mtx, customers, depot, current_time)
+    log.extend(rvnd_log)
+    
+    best_routes = copy.deepcopy(curr_routes)
+    best_dist = total_distance(best_routes, dist_mtx)
+    
+    # Fase 3: Iterasi ILS dengan Perturbasi
+    for i in range(max_iters):
+        # a. Perturbasi
+        perturbed = perturbation(best_routes, dist_mtx, time_mtx, customers, depot, current_time)
+        if total_distance(perturbed, dist_mtx) == best_dist and len(perturbed) == len(best_routes):
+            # Jika perturbasi tidak mengubah rute sama sekali, lewati
+            continue
+            
+        # b. Local Search pada rute terperturbasi
+        perturbed_ls = local_search_optimize(perturbed, dist_mtx, time_mtx, customers, depot, current_time)
+        
+        # c. RVND pada hasil local search
+        perturbed_rvnd, p_log = rvnd_optimize(perturbed_ls, dist_mtx, time_mtx, customers, depot, current_time)
+        
+        # d. Kriteria Penerimaan (Acceptance Criterion): Terima jika total jarak lebih kecil
+        new_dist = total_distance(perturbed_rvnd, dist_mtx)
+        if new_dist + 1e-9 < best_dist:
+            best_dist = new_dist
+            best_routes = copy.deepcopy(perturbed_rvnd)
+            log.append({
+                "operator": f"Perturbasi & ILS (Iterasi {i+1})",
+                "type": "metaheuristic",
+                "status": f"diperbaiki (jarak berkurang menjadi {best_dist:.2f} km)"
+            })
+            log.extend(p_log)
+            
+    return best_routes, log
+
+
+# ─────────────────────────────────────────────────────────────
 # MESIN SIMULASI DVRPTW
 # ─────────────────────────────────────────────────────────────
 
@@ -671,16 +871,12 @@ def run_dvrptw_simulation(
 ) -> Dict:
     """
     Simulasi DVRPTW lengkap dengan tahapan:
-    1. Bangun rute awal dari pelanggan statis menggunakan Nearest Neighbor
+    1. Bangun rute awal dari pelanggan statis menggunakan Sequential Insertion
     2. Jalankan jam virtual (virtual clock) dari depot buka sampai depot tutup
     3. Setiap time step, periksa pelanggan dinamis yang muncul (reveal_time <= t)
     4. Sisipkan pelanggan dinamis ke posisi terbaik setelah node committed
        (non-preemption — cheapest insertion)
-    5. Jalankan RVND untuk optimasi lokal pada bagian rute yang belum ditempuh
-
-    Evaluasi performa:
-    - Bandingkan Solusi Dinamis (online/real-time) vs Solusi Statis Ideal (offline)
-    - Dynamic Overhead Gap (%) = seberapa besar tambahan jarak akibat ketidakpastian
+    5. Jalankan Iterated Local Search (ILS) untuk optimasi pada rute sisa yang belum ditempuh
     """
     # Pisahkan pelanggan berdasarkan tipe: statis (diketahui sejak awal) vs dinamis
     static_ids = [c.id for c in customers.values() if not c.is_dynamic]
@@ -691,11 +887,11 @@ def run_dvrptw_simulation(
     # Asumsikan SEMUA pelanggan sudah diketahui sejak jam buka depot
     # ──────────────────────────────────────────────
     all_cust_ids = list(customers.keys())
-    ideal_static_routes = nearest_neighbor(
+    ideal_static_routes = sequential_insertion(
         all_cust_ids, dist_mtx, time_mtx, customers, depot
     )
     if apply_rvnd and ideal_static_routes:
-        ideal_static_routes, _ = rvnd_optimize(
+        ideal_static_routes, _ = iterated_local_search(
             ideal_static_routes, dist_mtx, time_mtx, customers,
             depot, current_time=depot.tw_open
         )
@@ -703,14 +899,14 @@ def run_dvrptw_simulation(
 
     # ──────────────────────────────────────────────
     # FASE 1: SOLUSI AWAL DARI PELANGGAN STATIS
-    # Menggunakan Nearest Neighbor pada t = depot.tw_open
+    # Menggunakan Sequential Insertion pada t = depot.tw_open
     # ──────────────────────────────────────────────
-    initial_routes = nearest_neighbor(
+    initial_routes = sequential_insertion(
         static_ids, dist_mtx, time_mtx, customers, depot
     )
 
     if apply_rvnd and initial_routes:
-        initial_routes, init_log = rvnd_optimize(
+        initial_routes, init_log = iterated_local_search(
             initial_routes, dist_mtx, time_mtx, customers,
             depot, current_time=depot.tw_open
         )
@@ -722,7 +918,7 @@ def run_dvrptw_simulation(
     events.append({
         "time": depot.tw_open,
         "event": "SOLUSI_AWAL",
-        "detail": f"Rute awal terbentuk: {len(initial_routes)} rute, "
+        "detail": f"Rute awal terbentuk via Sequential Insertion: {len(initial_routes)} rute, "
                   f"{len(static_ids)} pelanggan statis",
         "routes": copy.deepcopy(initial_routes),
         "total_distance": total_distance(initial_routes, dist_mtx),
@@ -763,16 +959,16 @@ def run_dvrptw_simulation(
                 "total_distance": total_distance(current_routes, dist_mtx),
             })
 
-            # Optimasi lokal setelah penyisipan (hanya bagian rute yang belum ditempuh)
+            # Optimasi ILS setelah penyisipan (hanya bagian rute yang belum ditempuh)
             if apply_rvnd:
-                current_routes, _ = rvnd_optimize(
+                current_routes, _ = iterated_local_search(
                     current_routes, dist_mtx, time_mtx, customers,
                     depot, current_time=t
                 )
                 events.append({
                     "time": round(t, 4),
                     "event": "RE_OPTIMASI",
-                    "detail": "Optimasi lokal RVND pada sisa rute yang belum ditempuh",
+                    "detail": "Optimasi metaheuristik ILS (Local Search + RVND + Perturbasi) pada sisa rute",
                     "routes": copy.deepcopy(current_routes),
                     "total_distance": total_distance(current_routes, dist_mtx),
                 })
@@ -788,7 +984,7 @@ def run_dvrptw_simulation(
             )
             revealed_dynamic.add(cid)
             if apply_rvnd:
-                current_routes, _ = rvnd_optimize(
+                current_routes, _ = iterated_local_search(
                     current_routes, dist_mtx, time_mtx, customers,
                     depot, current_time=depot.tw_close
                 )
