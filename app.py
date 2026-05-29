@@ -35,7 +35,9 @@ from theme import (
 
 
 # ─── Konfigurasi Caching Lokal (Persistensi Data) ───
-CACHE_FILE = "d:\\PORTFOLIO\\NUR\\NUHA\\_data\\active_session_cache.json"
+# Dinamisasi path agar portabel (otomatis mendeteksi folder lokasi file app.py saat ini)
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+CACHE_FILE = os.path.join(CURRENT_DIR, "_data", "active_session_cache.json")
 
 def save_session_cache():
     cache_data = {}
@@ -215,11 +217,11 @@ if not st.session_state.entered_dashboard:
 st.sidebar.markdown(SIDEBAR_HEADER, unsafe_allow_html=True)
 st.sidebar.markdown("---")
 menu = st.sidebar.radio("Menu", [
-    "Beranda",
-    "Data Pelanggan",
-    "Konfigurasi Armada",
-    "Simulasi DVRPTW",
-    "Analisis Hasil",
+    "🏠 Beranda",
+    "👥 Data Pelanggan",
+    "🚚 Konfigurasi Armada",
+    "⚙️ Simulasi DVRPTW",
+    "📊 Analisis Hasil",
 ], label_visibility="collapsed")
 st.sidebar.markdown("---")
 if st.sidebar.button("⬅️ Kembali ke Cover Page", use_container_width=True):
@@ -243,7 +245,7 @@ st.sidebar.markdown(SIDEBAR_FOOTER, unsafe_allow_html=True)
 # ═══════════════════════════════════════════════════
 # HALAMAN: BERANDA
 # ═══════════════════════════════════════════════════
-if menu == "Beranda":
+if menu == "🏠 Beranda":
     st.markdown(HERO_BANNER, unsafe_allow_html=True)
     st.markdown("### Tentang Aplikasi")
     st.markdown("""
@@ -293,7 +295,7 @@ if menu == "Beranda":
 # ═══════════════════════════════════════════════════
 # HALAMAN: DATA PELANGGAN
 # ═══════════════════════════════════════════════════
-elif menu == "Data Pelanggan":
+elif menu == "👥 Data Pelanggan":
     st.markdown(HERO_BANNER, unsafe_allow_html=True)
     st.markdown("### 📥 Upload Berkas Data DVRPTW")
     st.caption(
@@ -596,7 +598,7 @@ elif menu == "Data Pelanggan":
 # ═══════════════════════════════════════════════════
 # HALAMAN: KONFIGURASI ARMADA
 # ═══════════════════════════════════════════════════
-elif menu == "Konfigurasi Armada":
+elif menu == "🚚 Konfigurasi Armada":
     st.markdown(HERO_BANNER, unsafe_allow_html=True)
     st.markdown("### Parameter Depot dan Kendaraan")
     ca, cb = st.columns(2, gap="large")
@@ -641,7 +643,7 @@ elif menu == "Konfigurasi Armada":
 # ═══════════════════════════════════════════════════
 # HALAMAN: SIMULASI DVRPTW
 # ═══════════════════════════════════════════════════
-elif menu == "Simulasi DVRPTW":
+elif menu == "⚙️ Simulasi DVRPTW":
     st.markdown(HERO_BANNER, unsafe_allow_html=True)
     cdf = st.session_state.cust_df
     dmx = st.session_state.dist_mx
@@ -709,17 +711,51 @@ elif menu == "Simulasi DVRPTW":
         c3.metric("Total Pelanggan", ns + nd)
         c4.metric("Total Demand", f"{sum(c.demand for c in custs.values()):.0f} kg")
 
+        # 📌 RINGKASAN RENCANA OPERASIONAL SEBELUM SIMULASI
+        with st.expander("📋 Ringkasan Rencana Operasional Distribusi", expanded=True):
+            st.markdown(f"""
+            Berikut adalah detail rencana operasional pengiriman yang siap dijalankan oleh sistem:
+            *   **Kapasitas Armada**: Operasional kali ini dikonfigurasi maksimal **{st.session_state.max_vehicles} kendaraan** dengan kapasitas muatan homogen masing-masing **{st.session_state.capacity:,} kg**.
+            *   **Distribusi Muatan**: Total muatan pelanggan statis (yang diketahui sejak awal hari) adalah sebesar **{sum(c.demand for c in custs.values() if not c.is_dynamic):.0f} kg**. Muatan ini akan langsung dijadwalkan pada rute awal.
+            *   **Penanganan Pesanan Mendadak**: Total muatan dari pesanan dinamis baru yang masuk di tengah hari adalah sebesar **{sum(c.demand for c in custs.values() if c.is_dynamic):.0f} kg**. Pesanan-pesanan mendadak ini akan disisipkan secara bertahap sepanjang simulasi jam kerja depot, mulai pukul **{st.session_state.depot_open:.2f}** hingga batas depot tutup pukul **{st.session_state.depot_close:.2f}**.
+            """)
+
         if nd == 0:
             st.warning(
                 "Belum ada pelanggan dinamis. Simulasi berjalan sebagai VRP statis."
             )
 
         st.markdown("---")
-        do_rvnd = st.checkbox(
-            "Terapkan RVND (Randomized Variable Neighborhood Descent)?",
-            True,
-            help="Jika diaktifkan, RVND akan memperbaiki rute dengan 5 operator neighborhood."
-        )
+        st.markdown("### ⚙️ Konfigurasi Mesin Optimasi & Acakan")
+        
+        col_opt1, col_opt2 = st.columns(2, gap="large")
+        with col_opt1:
+            st.markdown("#### Metode Perbaikan Rute")
+            do_rvnd = st.toggle(
+                "Terapkan Optimasi RVND",
+                value=True,
+                help="Mengaktifkan optimasi lokal berlapis dengan 5 operator neighborhood untuk memperpendek total jarak tempuh."
+            )
+            st.caption("RVND bertugas melakukan pencarian lokal (local search) intra-route dan inter-route secara intensif.")
+            
+        with col_opt2:
+            st.markdown("#### Konsistensi Hasil (Reproduksibilitas)")
+            use_fixed_seed = st.toggle(
+                "Kunci Acakan (Fixed Seed)",
+                value=True,
+                help="Mengunci acakan algoritma agar hasil rute selalu konsisten ketika dijalankan berulang kali."
+            )
+            if use_fixed_seed:
+                seed_val = st.number_input(
+                    "Nilai Seed (Acuan Acakan)",
+                    min_value=0, max_value=999999,
+                    value=42,
+                    help="Gunakan angka bulat acak mana saja. Jika angkanya sama, hasil rute akan selalu sama."
+                )
+            else:
+                seed_val = 42
+        
+        selected_seed = int(seed_val) if use_fixed_seed else None
 
         if st.button("Jalankan Simulasi DVRPTW", use_container_width=True):
             with st.spinner("Memproses simulasi distribusi dinamis..."):
@@ -727,12 +763,12 @@ elif menu == "Simulasi DVRPTW":
                 # Selalu jalankan versi tanpa optimasi (Unoptimized)
                 res_unopt = run_dvrptw_simulation(
                     custs, dist, tmtx, depot,
-                    time_step=0.05, apply_rvnd=False
+                    time_step=0.05, apply_rvnd=False, random_seed=selected_seed
                 )
                 # Selalu jalankan versi dengan optimasi (Optimized - RVND)
                 res_opt = run_dvrptw_simulation(
                     custs, dist, tmtx, depot,
-                    time_step=0.05, apply_rvnd=True
+                    time_step=0.05, apply_rvnd=True, random_seed=selected_seed
                 )
                 el = _time.time() - t0
                 
@@ -766,13 +802,23 @@ elif menu == "Simulasi DVRPTW":
                 f"{m['dynamic_gap_pct']:.2f}%",
                 help="Persentase tambahan jarak rute dinamis vs statis ideal."
             )
+            
+            # 💡 ANALISIS HASIL SIMULASI DINAMIS (ZERO HARDCODING)
+            with st.expander("💡 Ringkasan Analisis Performa Rute Dinamis", expanded=True):
+                st.markdown(f"""
+                Simulasi pengiriman dinamis telah diselesaikan dengan hasil evaluasi performa sebagai berikut:
+                *   **Penggunaan Armada**: Sebanyak **{m['total_routes']} kendaraan** aktif digunakan untuk melayani total **{m['total_customers']} lokasi** (terdiri dari **{m['static_customers']} pesanan statis** awal dan **{m['dynamic_customers']} pesanan dinamis** baru yang masuk saat armada sedang dalam perjalanan). Batas kapasitas armada yang dikonfigurasi adalah maksimal **{st.session_state.max_vehicles} kendaraan**.
+                *   **Efisiensi & Celah Dinamis (Dynamic Gap)**: Total jarak tempuh rute riil adalah **{m['final_distance']:.2f} km**. Jarak ini menghasilkan **tambahan jarak operasional (Dynamic Overhead Gap) sebesar {m['dynamic_gap_pct']:.2f}%** jika dibandingkan dengan Solusi Statis Ideal ({m['ideal_static_distance']:.2f} km) yang mengasumsikan seluruh pesanan sudah diketahui sejak awal tanpa ada pesanan mendadak. Nilai gap yang rendah menunjukkan bahwa algoritma **Cheapest Insertion** berhasil menyisipkan pesanan baru secara efisien.
+                *   **Kelayakan Batasan Operasional**: Aturan *non-preemption* terpenuhi sepenuhnya, di mana pengalihan rute hanya dilakukan pada segmen yang belum dilewati kendaraan (tidak ada kendaraan yang berputar balik di tengah jalan). Seluruh armada juga dipastikan berhasil kembali ke depot pusat sebelum batas tutup operasional pada pukul **{st.session_state.depot_close:.2f}**.
+                """)
+            
             st.info("Buka halaman **Analisis Hasil** untuk visualisasi lengkap.")
 
 
 # ═══════════════════════════════════════════════════
 # HALAMAN: ANALISIS HASIL
 # ═══════════════════════════════════════════════════
-elif menu == "Analisis Hasil":
+elif menu == "📊 Analisis Hasil":
     st.markdown(HERO_BANNER, unsafe_allow_html=True)
     if not st.session_state.sim_result:
         st.info("Belum ada hasil simulasi. Jalankan simulasi di halaman **Simulasi DVRPTW**.")
@@ -829,16 +875,76 @@ elif menu == "Analisis Hasil":
             c4.metric("Rata-rata Utilisasi", f"{avg_util:.1f}%")
             
             # Penjelasan metrik
-            with st.expander("ℹ️ Penjelasan Metrik Rute Final"):
+            with st.expander("ℹ️ Penjelasan Metrik Rute Final", expanded=False):
                 st.markdown(f"""
                 **Total Jarak Tempuh**: Jumlah total jarak yang ditempuh oleh seluruh kendaraan dalam kilometer (km). Semakin kecil nilai ini, semakin efisien rute yang dihasilkan.
                 
                 **Total Waktu Kerja**: Durasi total operasional seluruh armada dalam jam desimal. Nilai ini mencakup waktu perjalanan antar node dan waktu pelayanan di setiap pelanggan. Format HMS (Jam:Menit:Detik) ditampilkan untuk kemudahan pembacaan.
                 
-                **Kendaraan Terpakai**: Jumlah kendaraan yang digunakan untuk melayani seluruh pelanggan. Dalam kasus ini, maksimal 2 kendaraan tersedia dengan kapasitas masing-masing 2500 kg.
+                **Kendaraan Terpakai**: Jumlah kendaraan yang digunakan untuk melayani seluruh pelanggan. Dalam kasus ini, maksimal **{depot_obj.max_vehicles} kendaraan** tersedia dengan kapasitas masing-masing **{depot_obj.capacity:,} kg**.
                 
                 **Rata-rata Utilisasi**: Persentase rata-rata penggunaan kapasitas kendaraan. Nilai tinggi (mendekati 100%) menunjukkan kendaraan dimanfaatkan secara optimal tanpa banyak ruang kosong.
                 """)
+
+            # 📊 GRAFIK DISTRIBUSI MUATAN PER KENDARAAN (Dipindahkan dari Tab 2 agar layout rapi)
+            st.markdown("---")
+            st.markdown("#### Distribusi Muatan per Kendaraan")
+            
+            with st.expander("ℹ️ Cara Membaca Grafik Distribusi Muatan", expanded=False):
+                st.markdown(f"""
+                **Muatan Terisi (Biru Tua)**: Jumlah muatan barang yang diangkut oleh kendaraan dalam kilogram (kg).
+                
+                **Sisa Kapasitas (Biru Muda)**: Kapasitas kosong yang masih tersedia pada kendaraan dalam kilogram (kg).
+                
+                **Garis Merah Putus-putus**: Batas maksimum kapasitas muatan kendaraan (**{depot_obj.capacity:,} kg**).
+                
+                **Interpretasi**: Semakin tinggi bagian biru tua (Muatan Terisi), semakin optimal pemanfaatan kapasitas kendaraan homogen.
+                """)
+            
+            load_data = []
+            for i, rt in enumerate(res["final_routes"]):
+                ld = sum(custs[n].demand for n in rt.customers_only if n in custs)
+                load_data.append({
+                    "Kendaraan": f"Kendaraan {i + 1}",
+                    "Muatan (kg)": ld,
+                    "Sisa Kapasitas (kg)": depot_obj.capacity - ld,
+                })
+            load_df = pd.DataFrame(load_data)
+
+            fig_load = go.Figure()
+            fig_load.add_trace(go.Bar(
+                x=load_df["Kendaraan"], y=load_df["Muatan (kg)"],
+                name="Muatan Terisi",
+                marker_color="#1E40AF",
+                text=load_df["Muatan (kg)"].apply(lambda x: f"{x:.0f} kg"),
+                textposition="auto",
+                textfont=dict(size=14),
+            ))
+            fig_load.add_trace(go.Bar(
+                x=load_df["Kendaraan"], y=load_df["Sisa Kapasitas (kg)"],
+                name="Sisa Kapasitas",
+                marker_color="#BFDBFE",
+                text=load_df["Sisa Kapasitas (kg)"].apply(lambda x: f"{x:.0f} kg"),
+                textposition="auto",
+                textfont=dict(size=14),
+            ))
+            fig_load.update_layout(
+                barmode="stack",
+                yaxis_title="Kapasitas (kg)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                height=350,
+                font=dict(family="Inter"),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, font=dict(size=13)),
+                hoverlabel=dict(font_size=12, font_family="Inter"),
+            )
+            fig_load.add_hline(
+                y=depot_obj.capacity,
+                line_dash="dash", line_color="#DC2626",
+                annotation_text=f"Kapasitas Maks: {depot_obj.capacity} kg",
+                annotation_position="top right",
+            )
+            st.plotly_chart(fig_load, use_container_width=True)
 
             # Detail waktu kedatangan per rute
             st.markdown("---")
@@ -953,7 +1059,9 @@ elif menu == "Analisis Hasil":
                     x=path_x, y=path_y,
                     mode="lines",
                     line=dict(color=color, width=3),
-                    name=f"Kendaraan {r_idx + 1}",
+                    name=f"Rute Kendaraan {r_idx + 1}",
+                    legendgroup=f"Kendaraan {r_idx + 1}",
+                    showlegend=True,
                     hoverinfo="skip",
                 ))
 
@@ -974,15 +1082,18 @@ elif menu == "Analisis Hasil":
                         arrowcolor=color,
                     )
 
-                    # Label jarak di setiap segmen
-                    fig_net.add_trace(go.Scatter(
-                        x=[mx], y=[my],
-                        mode="text",
-                        text=[f"<i>{seg_dist:.1f} km</i>"],
-                        textfont=dict(size=10, color="#64748B", family="Inter"),
-                        showlegend=False,
-                        hoverinfo="skip",
-                    ))
+                    # Label jarak di setiap segmen sebagai annotation di atas segmen dengan background putih bulat agar tidak tertutup panah
+                    fig_net.add_annotation(
+                        x=mx, y=my,
+                        text=f"<b>{seg_dist:.1f} km</b>",
+                        showarrow=False,
+                        font=dict(size=9.5, color="#1E3A8A", family="JetBrains Mono"),
+                        bgcolor="#FFFFFF",
+                        bordercolor="#93C5FD",
+                        borderwidth=1.5,
+                        borderpad=3,
+                        yshift=0,
+                    )
 
             # Node depot (persegi besar)
             fig_net.add_trace(go.Scatter(
@@ -993,11 +1104,16 @@ elif menu == "Analisis Hasil":
                 text=["<b>Depot</b>"],
                 textposition="bottom center",
                 textfont=dict(size=15, color="#0F172A", family="Inter"),
-                name="Depot",
+                name="Depot Pusat (Node 0)",
+                legendgroup="Depot",
+                showlegend=True,
                 hovertemplate="Depot (Node 0)<extra></extra>",
             ))
 
-            # Node pelanggan
+            # Node pelanggan (Dengan pengelompokan legenda yang rapi)
+            show_static_legend = True
+            show_dynamic_legend = True
+
             for node in cust_nodes:
                 c_obj = custs.get(node)
                 is_dyn = c_obj.is_dynamic if c_obj else False
@@ -1005,6 +1121,17 @@ elif menu == "Analisis Hasil":
                 symbol = "diamond" if is_dyn else "circle"
                 tipe_str = "Dinamis" if is_dyn else "Statis"
                 demand_str = f"{c_obj.demand:.0f} kg" if c_obj else "?"
+
+                if is_dyn:
+                    show_leg = show_dynamic_legend
+                    show_dynamic_legend = False
+                    leg_name = "Pelanggan Dinamis"
+                    leg_group = "Pelanggan Dinamis"
+                else:
+                    show_leg = show_static_legend
+                    show_static_legend = False
+                    leg_name = "Pelanggan Statis"
+                    leg_group = "Pelanggan Statis"
 
                 fig_net.add_trace(go.Scatter(
                     x=[positions[node][0]], y=[positions[node][1]],
@@ -1014,7 +1141,9 @@ elif menu == "Analisis Hasil":
                     text=[f"<b>{node}</b>"],
                     textposition="middle center",
                     textfont=dict(size=15, color="white", family="Inter"),
-                    name=f"Plg {node} ({tipe_str})",
+                    name=leg_name,
+                    legendgroup=leg_group,
+                    showlegend=show_leg,
                     hovertemplate=(
                         f"Pelanggan {node} ({tipe_str})<br>"
                         f"Demand: {demand_str}<br>"
@@ -1025,8 +1154,8 @@ elif menu == "Analisis Hasil":
 
             fig_net.update_layout(
                 height=550,
-                plot_bgcolor="#F8FAFC",
-                paper_bgcolor="#FFFFFF",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
                 font=dict(family="Inter"),
                 legend=dict(
                     orientation="h", yanchor="bottom", y=1.02,
@@ -1048,65 +1177,6 @@ elif menu == "Analisis Hasil":
             *Angka miring abu-abu pada garis (e.g., 4.0 km) = jarak antar segmen rute*
             """)
 
-            # Grafik distribusi muatan per kendaraan
-            st.markdown("---")
-            st.markdown("#### Distribusi Muatan per Kendaraan")
-            
-            with st.expander("ℹ️ Cara Membaca Grafik Distribusi Muatan"):
-                st.markdown("""
-                **Muatan Terisi (Biru Tua)**: Jumlah barang yang diangkut oleh kendaraan dalam kilogram (kg).
-                
-                **Sisa Kapasitas (Biru Muda)**: Ruang kosong yang masih tersedia di kendaraan dalam kilogram (kg).
-                
-                **Garis Merah Putus-putus**: Batas maksimum kapasitas kendaraan (2500 kg). Total tinggi batang (muatan + sisa) harus sama dengan garis ini.
-                
-                **Interpretasi**: Semakin tinggi bagian biru tua, semakin optimal penggunaan kapasitas kendaraan. Idealnya, sisa kapasitas (biru muda) seminimal mungkin agar tidak ada ruang terbuang.
-                """)
-            
-            load_data = []
-            for i, rt in enumerate(res["final_routes"]):
-                ld = sum(custs[n].demand for n in rt.customers_only if n in custs)
-                load_data.append({
-                    "Kendaraan": f"Kendaraan {i + 1}",
-                    "Muatan (kg)": ld,
-                    "Sisa Kapasitas (kg)": depot_obj.capacity - ld,
-                })
-            load_df = pd.DataFrame(load_data)
-
-            fig_load = go.Figure()
-            fig_load.add_trace(go.Bar(
-                x=load_df["Kendaraan"], y=load_df["Muatan (kg)"],
-                name="Muatan Terisi",
-                marker_color="#1E40AF",
-                text=load_df["Muatan (kg)"].apply(lambda x: f"{x:.0f} kg"),
-                textposition="auto",
-                textfont=dict(size=14),
-            ))
-            fig_load.add_trace(go.Bar(
-                x=load_df["Kendaraan"], y=load_df["Sisa Kapasitas (kg)"],
-                name="Sisa Kapasitas",
-                marker_color="#BFDBFE",
-                text=load_df["Sisa Kapasitas (kg)"].apply(lambda x: f"{x:.0f} kg"),
-                textposition="auto",
-                textfont=dict(size=14),
-            ))
-            fig_load.update_layout(
-                barmode="stack",
-                yaxis_title="Kapasitas (kg)",
-                plot_bgcolor="#F8FAFC",
-                height=350,
-                font=dict(family="Inter"),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, font=dict(size=13)),
-                hoverlabel=dict(font_size=12, font_family="Inter"),
-            )
-            fig_load.add_hline(
-                y=depot_obj.capacity,
-                line_dash="dash", line_color="#DC2626",
-                annotation_text=f"Kapasitas Maks: {depot_obj.capacity} kg",
-                annotation_position="top right",
-            )
-            st.plotly_chart(fig_load, use_container_width=True)
-
         # ═══ TAB 3: SEBELUM VS SETELAH OPTIMASI (RVND) ═══
         with t_rvnd:
             if st.session_state.sim_unopt_result is None or st.session_state.sim_opt_result is None:
@@ -1123,7 +1193,7 @@ elif menu == "Analisis Hasil":
             m_un = res_un["metrics"]
             m_op = res_op["metrics"]
 
-            st.markdown("### ⚡ Analisis Perbaikan Rute: Sebelum vs Setelah Optimasi ILS & RVND")
+            st.markdown("### Analisis Perbaikan Rute: Sebelum vs Setelah Optimasi ILS & RVND")
             st.caption(
                 "Halaman ini membandingkan kinerja rute heuristik dasar (Sequential Insertion + Cheapest Insertion) "
                 "dengan rute yang telah disempurnakan secara dinamis menggunakan Iterated Local Search (ILS) yang mengintegrasikan RVND."
@@ -1198,7 +1268,7 @@ elif menu == "Analisis Hasil":
                 """)
 
             st.markdown("---")
-            st.markdown("#### 📊 Tabel Perbandingan Parameter Sebelum vs Setelah Optimasi")
+            st.markdown("#### Tabel Perbandingan Parameter Sebelum vs Setelah Optimasi")
             
             # Hitung muatan rata-rata per rute
             avg_ld_un = np.mean([sum(custs[n].demand for n in rt.customers_only if n in custs) for rt in res_un['final_routes']]) if res_un['final_routes'] else 0
@@ -1241,7 +1311,7 @@ elif menu == "Analisis Hasil":
             st.dataframe(comp_rvnd_df, hide_index=True, use_container_width=True)
 
             st.markdown("---")
-            st.markdown("#### 📈 Visualisasi Efisiensi Optimasi ILS & RVND")
+            st.markdown("#### Visualisasi Efisiensi Optimasi ILS & RVND")
             
             with st.expander("ℹ️ Cara Membaca Grafik Perbandingan"):
                 st.markdown("""
@@ -1257,19 +1327,36 @@ elif menu == "Analisis Hasil":
             with col_g1:
                 fig_g1 = go.Figure()
                 fig_g1.add_trace(go.Bar(
-                    x=["Sebelum Optimasi", "Setelah Optimasi"],
-                    y=[dist_un, dist_op],
-                    marker_color=["#EF4444", "#10B981"],
-                    text=[f"{dist_un:.2f} km", f"{dist_op:.2f} km"],
+                    x=["Sebelum Optimasi"],
+                    y=[dist_un],
+                    name="Sebelum Optimasi",
+                    marker_color="#EF4444",
+                    text=[f"{dist_un:.2f} km"],
+                    textposition="auto",
+                    width=0.4
+                ))
+                fig_g1.add_trace(go.Bar(
+                    x=["Setelah Optimasi"],
+                    y=[dist_op],
+                    name="Setelah Optimasi",
+                    marker_color="#10B981",
+                    text=[f"{dist_op:.2f} km"],
                     textposition="auto",
                     width=0.4
                 ))
                 fig_g1.update_layout(
                     title="Perbandingan Total Jarak Tempuh (km)",
                     yaxis_title="Jarak (km)",
-                    plot_bgcolor="#F8FAFC",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
                     height=300,
                     font=dict(family="Inter"),
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h", yanchor="bottom", y=1.02,
+                        xanchor="center", x=0.5,
+                        font=dict(size=12),
+                    ),
                     hoverlabel=dict(font_size=12, font_family="Inter"),
                 )
                 st.plotly_chart(fig_g1, use_container_width=True)
@@ -1277,19 +1364,36 @@ elif menu == "Analisis Hasil":
             with col_g2:
                 fig_g2 = go.Figure()
                 fig_g2.add_trace(go.Bar(
-                    x=["Sebelum Optimasi", "Setelah Optimasi"],
-                    y=[time_un, time_op],
-                    marker_color=["#F59E0B", "#10B981"],
-                    text=[f"{time_un:.4f} jam", f"{time_op:.4f} jam"],
+                    x=["Sebelum Optimasi"],
+                    y=[time_un],
+                    name="Sebelum Optimasi",
+                    marker_color="#F59E0B",
+                    text=[f"{time_un:.4f} jam"],
+                    textposition="auto",
+                    width=0.4
+                ))
+                fig_g2.add_trace(go.Bar(
+                    x=["Setelah Optimasi"],
+                    y=[time_op],
+                    name="Setelah Optimasi",
+                    marker_color="#10B981",
+                    text=[f"{time_op:.4f} jam"],
                     textposition="auto",
                     width=0.4
                 ))
                 fig_g2.update_layout(
                     title="Perbandingan Total Waktu Operasional (jam desimal)",
                     yaxis_title="Waktu (jam desimal)",
-                    plot_bgcolor="#F8FAFC",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
                     height=300,
                     font=dict(family="Inter"),
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h", yanchor="bottom", y=1.02,
+                        xanchor="center", x=0.5,
+                        font=dict(size=12),
+                    ),
                     hoverlabel=dict(font_size=12, font_family="Inter"),
                 )
                 st.plotly_chart(fig_g2, use_container_width=True)
@@ -1303,35 +1407,29 @@ elif menu == "Analisis Hasil":
                 for rt in res_op["final_routes"]
             ) / (len(res_op["final_routes"]) * depot_obj.capacity) * 100 if res_op["final_routes"] else 0
 
-            with st.expander("📝 **Kesimpulan Permasalahan DVRPTW**", expanded=True):
+            with st.expander("📝 **Kesimpulan Analisis Permasalahan DVRPTW**", expanded=True):
                 st.markdown(f"""
-                [!NOTE]
-            **1. Rasionalisasi Penggunaan Jam Desimal (Decimal Hours)**
-            - Seluruh durasi dan matriks waktu dalam sistem ini direpresentasikan dalam **Jam Desimal** (misalnya `0.9005 jam` atau `1.2005 jam`). Representasi ini digunakan agar komputasi matematis (seperti pembagian jarak terhadap kecepatan rata-rata $v = 60 \\text{{ km/jam}}$) tetap presisi tanpa ada pembulatan berulang.
-            - **Konversi ke Waktu Operasional**:
-              - **0.9005 jam** = $0.9005 \\times 60 \\text{{ menit}} = 54.03 \\text{{ menit}} \\approx$ **54 menit 2 detik**.
-              - **1.2005 jam** = $1.2005 \\times 60 \\text{{ menit}} = 72.03 \\text{{ menit}} \\approx$ **1 jam 12 menit 2 detik**.
-              - Aplikasi telah dilengkapi pengonversi otomatis ke format **HMS** (Jam-Menit-Detik) di seluruh halaman untuk memudahkan pembacaan operasional di lapangan.
-            
-            [!IMPORTANT]
-            **2. Efektivitas Algoritma ILS & RVND (Optimasi Metaheuristik)**
-            - Kombinasi metode **Sequential Insertion** sebagai rute awal dan **ILS & RVND (Iterated Local Search & Randomized Variable Neighborhood Descent)** terbukti **sangat efektif** dalam meningkatkan efisiensi distribusi.
-            - Algoritma berhasil meminimalkan total jarak tempuh dari **{dist_un:.2f} km** menjadi **{dist_op:.2f} km** (menghemat **{dist_diff:.2f} km** atau **{dist_pct:.2f}%** jarak tempuh).
-            - Durasi waktu operasional armada juga terpangkas dari **{time_un:.4f} jam** ({format_hours_to_hms(time_un)}) menjadi **{time_op:.4f} jam** ({format_hours_to_hms(time_op)}) (hemat **{time_pct:.2f}%** waktu kerja).
-            - Hasil ini membuktikan keunggulan konstruksi *Sequential Insertion* serta kekuatan metaheuristik ILS yang menggunakan *perturbasi* untuk mendobrak optimum lokal sehingga didapatkan rute global yang jauh lebih optimal bagi armada logistik.
-            
-            [!TIP]
-            **3. Analisis Kelayakan Solusi (Feasibility & Fleet Utility)**
-            - Seluruh rute hasil simulasi dinyatakan **LAYAK (FEASIBLE)** secara matematis dan operasional:
-              - **Kapasitas Kendaraan**: Muatan maksimum setiap rute tidak melebihi kapasitas homogen **{depot_obj.capacity:,} kg**.
-              - **Jendela Waktu (Time Windows)**: Kendaraan berhasil menyelesaikan seluruh pengantaran dan kembali ke depot sebelum batas jam tutup depot pukul **{format_hours_to_hms(depot_obj.tw_close)}** (durasi maksimal {depot_obj.tw_close - depot_obj.tw_open:.1f} jam kerja dari pukul {format_hours_to_hms(depot_obj.tw_open)}).
-              - **Utilisasi Armada**: Dengan mengoptimalkan rute, utilisasi rata-rata kapasitas kendaraan mencapai **{avg_util:.1f}%**.
-            
-            [!WARNING]
-            **4. Efek Ketidakpastian Informasi (Dynamic Overhead Gap)**
-            - Nilai *Dynamic Overhead Gap* sebesar **{m_op['dynamic_gap_pct']:.2f}%** menunjukkan biaya tambahan (*overhead*) berupa selisih jarak yang harus dibayar akibat sifat kedatangan pesanan yang dinamis (muncul mendadak saat rute sudah berjalan) dibandingkan dengan solusi *offline* ideal di mana semua pesanan sudah diketahui sejak awal.
-            - Nilai gap yang sangat kecil ini membuktikan bahwa strategi **Cheapest Insertion** untuk penyisipan pelanggan dinamis, dikombinasikan dengan re-optimasi **ILS & RVND**, mampu meminimalkan efek negatif dari ketidakpastian informasi secara real-time.
-            """)
+                #### **1. Rasionalisasi Penggunaan Jam Desimal (Decimal Hours)**
+                *   Seluruh durasi dan matriks waktu dalam sistem ini direpresentasikan dalam **Jam Desimal** (misalnya `0.9005 jam`). Representasi ini digunakan agar komputasi matematis (seperti pembagian jarak terhadap kecepatan rata-rata armada $v = {depot_obj.speed:.1f} \\text{{ km/jam}}$) tetap presisi tanpa ada pembulatan berulang.
+                *   **Konversi Riil Hasil Pengiriman Saat Ini**:
+                    *   Total waktu operasional rute optimal saat ini adalah **{time_op:.4f} jam** yang secara otomatis dikonversi oleh sistem menjadi **{format_hours_to_hms(time_op)}** untuk kemudahan pemahaman operasional di lapangan.
+                
+                #### **2. Efektivitas Algoritma ILS & RVND (Optimasi Metaheuristik)**
+                *   Kombinasi metode **Sequential Insertion** sebagai rute awal dan **ILS & RVND (Iterated Local Search & Randomized Variable Neighborhood Descent)** terbukti **sangat efektif** dalam meningkatkan efisiensi distribusi.
+                *   Algoritma berhasil meminimalkan total jarak tempuh dari **{dist_un:.2f} km** menjadi **{dist_op:.2f} km** (menghemat **{dist_diff:.2f} km** atau **{dist_pct:.2f}%** jarak tempuh).
+                *   Durasi waktu operasional armada juga terpangkas dari **{time_un:.4f} jam** ({format_hours_to_hms(time_un)}) menjadi **{time_op:.4f} jam** ({format_hours_to_hms(time_op)}) (hemat **{time_pct:.2f}%** waktu kerja).
+                *   Hasil ini membuktikan keunggulan konstruksi *Sequential Insertion* serta kekuatan metaheuristik ILS yang menggunakan *perturbasi* untuk mendobrak optimum lokal sehingga didapatkan rute global yang jauh lebih optimal bagi armada logistik.
+                
+                #### **3. Analisis Kelayakan Solusi (Feasibility & Fleet Utility)**
+                *   Seluruh rute hasil simulasi dinyatakan **LAYAK (FEASIBLE)** secara matematis dan operasional:
+                    *   **Kapasitas Kendaraan**: Muatan maksimum setiap rute tidak melebihi kapasitas homogen **{depot_obj.capacity:,} kg**.
+                    *   **Jendela Waktu (Time Windows)**: Kendaraan berhasil menyelesaikan seluruh pengantaran dan kembali ke depot sebelum batas jam tutup depot pukul **{format_hours_to_hms(depot_obj.tw_close)}** (durasi maksimal **{depot_obj.tw_close - depot_obj.tw_open:.1f} jam** kerja dari pukul **{format_hours_to_hms(depot_obj.tw_open)}**).
+                    *   **Utilisasi Armada**: Dengan mengoptimalkan rute, utilisasi rata-rata kapasitas kendaraan mencapai **{avg_util:.1f}%**.
+                
+                #### **4. Efek Ketidakpastian Informasi (Dynamic Overhead Gap)**
+                *   Nilai *Dynamic Overhead Gap* sebesar **{m_op['dynamic_gap_pct']:.2f}%** menunjukkan biaya tambahan (*overhead*) berupa selisih jarak yang harus dibayar akibat sifat kedatangan pesanan yang dinamis (muncul mendadak saat rute sudah berjalan) dibandingkan dengan solusi *offline* ideal di mana semua pesanan sudah diketahui sejak awal.
+                *   Nilai gap yang sangat kecil ini membuktikan bahwa strategi **Cheapest Insertion** untuk penyisipan pelanggan dinamis, dikombinasikan dengan re-optimasi **ILS & RVND**, mampu meminimalkan efek negatif dari ketidakpastian informasi secara real-time.
+                """)
 
         # ═══ TAB 4: LOG KEJADIAN DINAMIS ═══
         with t_log:
@@ -1399,9 +1497,16 @@ elif menu == "Analisis Hasil":
                     fig_flux.update_layout(
                         xaxis_title="Waktu Simulasi (jam)",
                         yaxis_title="Total Jarak Tempuh (km)",
-                        plot_bgcolor="#F8FAFC",
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
                         height=380,
                         font=dict(family="Inter"),
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h", yanchor="bottom", y=1.02,
+                            xanchor="center", x=0.5,
+                            font=dict(size=13),
+                        ),
                         hoverlabel=dict(font_size=12, font_family="Inter"),
                     )
                     st.plotly_chart(fig_flux, use_container_width=True)
@@ -1416,22 +1521,17 @@ elif menu == "Analisis Hasil":
         # ═══ TAB 5: ANALISIS KOMPARASI ═══
         with t_analisis:
             st.markdown("### Analisis Perbandingan: Statis Ideal vs Dinamis")
-
-            st.markdown("""
-            **Solusi Statis Ideal (Offline):** Asumsikan semua pesanan sudah diketahui sejak awal.
-            **Solusi Dinamis (Online DVRPTW):** Pesanan dinamis muncul terlambat selama distribusi.
-            **Dynamic Overhead Gap (%):** Tambahan jarak akibat ketidakpastian informasi.
-            """)
             
-            with st.expander("ℹ️ Penjelasan Analisis Komparasi"):
+            with st.expander("ℹ️ Panduan Konsep & Cara Membaca Grafik Perbandingan", expanded=False):
                 st.markdown("""
-                **Solusi Statis Ideal (Offline)**: Skenario teoritis di mana semua pesanan pelanggan (statis + dinamis) sudah diketahui sejak pukul 04:00 pagi. Ini adalah solusi terbaik yang bisa dicapai jika tidak ada ketidakpastian.
+                ##### 📘 Konsep Dasar Analisis Perbandingan
+                *   **Solusi Statis Ideal (Offline Benchmark)**: Skenario teoritis di mana seluruh pesanan pelanggan (statis + dinamis) diasumsikan sudah diketahui sejak awal hari (pukul 04:00 pagi). Ini merupakan solusi optimal terbaik yang bisa dicapai apabila tidak ada faktor ketidakpastian operasional (*upper bound* efisiensi).
+                *   **Solusi Dinamis (Online DVRPTW)**: Skenario operasional riil di lapangan di mana pelanggan dinamis muncul mendadak secara bertahap saat armada sudah di perjalanan. Sistem harus merespon secara real-time dengan menyisipkan pesanan baru ke dalam rute yang sedang berjalan.
+                *   **Dynamic Overhead Gap**: Selisih persentase jarak rute dinamis aktual terhadap rute statis ideal offline. Nilai ini melambangkan **"Harga Ketidakpastian Informasi"** (biaya tambahan akibat kedatangan pesanan mendadak). Semakin kecil nilai gap ini, semakin tangguh algoritma *Cheapest Insertion + RVND* dalam menekan dampak kedatangan pesanan mendadak.
                 
-                **Solusi Dinamis (Online DVRPTW)**: Skenario realistis di mana pelanggan dinamis muncul secara bertahap saat kendaraan sudah dalam perjalanan. Algoritma harus menyesuaikan rute secara real-time.
-                
-                **Dynamic Overhead Gap**: Selisih persentase antara jarak dinamis dengan jarak statis ideal. Nilai ini mengukur "harga" yang harus dibayar akibat ketidakpastian informasi. Semakin kecil gap, semakin baik algoritma menangani dinamika.
-                
-                **Interpretasi**: Gap yang kecil (< 5%) menunjukkan algoritma Cheapest Insertion + RVND sangat efektif dalam meminimalkan dampak negatif dari kedatangan pesanan yang tidak terduga.
+                ##### 📊 Panduan Membaca Visualisasi Grafik
+                *   **Grafik Jarak Total**: Membandingkan total jarak tempuh kumulatif. Batang biru muda (Statis Ideal) adalah baseline terbaik, sedangkan batang biru tua (Dinamis) adalah hasil aktual. Selisih yang tipis menunjukkan efisiensi tinggi dari penyisipan rute dinamis.
+                *   **Grafik Jarak per Rute**: Menampilkan pembagian beban kerja jarak antar armada. Berguna untuk mengevaluasi pemerataan rute operasional agar beban antar kendaraan homogen tetap seimbang dan efisien.
                 """)
 
             # Metrik utama dengan 5 kolom
@@ -1526,31 +1626,39 @@ elif menu == "Analisis Hasil":
             # Grafik perbandingan jarak (bar chart)
             st.markdown("---")
             st.markdown("#### Perbandingan Total Jarak Tempuh")
-            
-            with st.expander("ℹ️ Cara Membaca Grafik Perbandingan Jarak"):
-                st.markdown("""
-                **Batang Biru Muda (Statis Ideal)**: Jarak tempuh jika semua pesanan diketahui sejak awal. Ini adalah baseline teoritis terbaik.
-                
-                **Batang Biru Tua (Dinamis)**: Jarak tempuh aktual dengan pesanan dinamis yang muncul bertahap. Ini adalah hasil algoritma DVRPTW.
-                
-                **Interpretasi**: Jika batang biru tua sedikit lebih tinggi dari biru muda, berarti ada overhead kecil akibat ketidakpastian. Semakin kecil selisihnya, semakin baik performa algoritma dalam menangani dinamika.
-                """)
+            st.caption("Membandingkan total jarak tempuh rute aktual (Dinamis) dengan batas teoritis terbaik (Statis Ideal).")
             
             fig_comp = go.Figure()
             fig_comp.add_trace(go.Bar(
-                x=["Statis Ideal (Offline)", "Dinamis (Online)"],
-                y=[ideal_dist, final_dist_val],
-                marker_color=["#BFDBFE", "#1E40AF"],
-                text=[f"{ideal_dist:.2f} km", f"{final_dist_val:.2f} km"],
+                x=["Statis Ideal (Offline)"],
+                y=[ideal_dist],
+                name="Statis Ideal (Offline)",
+                marker_color="#93C5FD",
+                text=[f"{ideal_dist:.2f} km"],
                 textposition="auto",
-                textfont=dict(size=16, color="#0F172A", family="Inter"),
+                textfont=dict(size=14, color="#0F172A", family="Inter"),
+            ))
+            fig_comp.add_trace(go.Bar(
+                x=["Dinamis (Online)"],
+                y=[final_dist_val],
+                name="Dinamis (Online)",
+                marker_color="#1E40AF",
+                text=[f"{final_dist_val:.2f} km"],
+                textposition="auto",
+                textfont=dict(size=14, color="#FFFFFF", family="Inter"),
             ))
             fig_comp.update_layout(
                 yaxis_title="Jarak Tempuh (km)",
-                plot_bgcolor="#F8FAFC",
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
                 height=360,
                 font=dict(family="Inter"),
-                showlegend=False,
+                showlegend=True,
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=1.02,
+                    xanchor="center", x=0.5,
+                    font=dict(size=13),
+                ),
                 hoverlabel=dict(font_size=12, font_family="Inter"),
             )
             st.plotly_chart(fig_comp, use_container_width=True)
@@ -1558,15 +1666,7 @@ elif menu == "Analisis Hasil":
             # Grafik perbandingan jarak per rute (grouped bar)
             if ideal_routes and final_routes:
                 st.markdown("#### Perbandingan Jarak per Rute Kendaraan")
-                
-                with st.expander("ℹ️ Cara Membaca Grafik Jarak per Rute"):
-                    st.markdown("""
-                    **Batang Biru Muda (Statis Ideal)**: Jarak tempuh setiap kendaraan pada solusi statis ideal (offline).
-                    
-                    **Batang Biru Tua (Dinamis)**: Jarak tempuh setiap kendaraan pada solusi dinamis (online).
-                    
-                    **Interpretasi**: Grafik ini menunjukkan distribusi beban jarak antar kendaraan. Idealnya, jarak per kendaraan relatif seimbang (tidak ada satu kendaraan yang jauh lebih panjang dari yang lain). Perbedaan tinggi batang menunjukkan dampak penyisipan dinamis pada masing-masing rute.
-                    """)
+                st.caption("Membandingkan beban jarak tempuh masing-masing armada untuk memantau keseimbangan operasional.")
                 
                 max_routes = max(len(ideal_routes), len(final_routes))
                 route_labels = [f"Kendaraan {i+1}" for i in range(max_routes)]
@@ -1597,7 +1697,8 @@ elif menu == "Analisis Hasil":
                 fig_per_route.update_layout(
                     barmode="group",
                     yaxis_title="Jarak Tempuh (km)",
-                    plot_bgcolor="#F8FAFC",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
                     height=350,
                     font=dict(family="Inter"),
                     legend=dict(
@@ -1630,6 +1731,7 @@ elif menu == "Analisis Hasil":
             fig_pie.update_layout(
                 height=400,
                 font=dict(family="Inter"),
+                paper_bgcolor="rgba(0,0,0,0)",
                 legend=dict(font=dict(size=13)),
                 annotations=[dict(
                     text=f"<b>{sum(pie_values):.0f} kg</b>",

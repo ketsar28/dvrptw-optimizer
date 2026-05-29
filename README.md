@@ -47,12 +47,17 @@ Fokus utama aplikasi ini adalah menghasilkan rute logistik dinamis yang **layak 
 ## ⚙️ Fitur Utama Aplikasi
 
 - **💻 Interactive Dashboard Web**: Antarmuka web interaktif yang modern dan premium menggunakan Streamlit dengan navigasi bersih beraksen biru profesional.
-- **📥 File System Automation**: Membaca dataset logistik lengkap (informasi depot, daftar pelanggan statis & dinamis, matriks jarak, dan matriks waktu) secara otomatis melalui unggahan file JSON.
-- **🗺️ Multidimensional Scaling (MDS) Map**: Memproyeksikan matriks jarak multi-dimensi menjadi peta jaringan koordinat 2D yang akurat secara spasial sehingga pengguna dapat melihat rute aktual kendaraan.
-- **⚡ Sebelum vs Setelah Optimasi (RVND)**: Panel khusus yang membandingkan performa rute heuristik dasar vs rute yang telah disempurnakan oleh RVND secara real-time, lengkap dengan persentase efisiensi jarak dan waktu kerja.
+- **📥 File System Automation & Dynamic Caching**: Membaca dataset logistik lengkap secara otomatis melalui unggahan file JSON dengan sistem path caching yang dinamis dan portabel untuk berbagai sistem operasi.
+- **🛡️ Dynamic Fleet Capacity Enforcement**: Menjamin kelayakan operasional secara ketat dengan membatasi jumlah rute agar tidak melebihi kapasitas armada maksimal homogen yang dikonfigurasi oleh pengguna.
+- **🎯 Academic Reproducibility (Fixed Seed)**: Dilengkapi dengan fitur **"Kunci Acakan (Fixed Seed)"** menggunakan parameter acuan acak matematis interaktif untuk menghasilkan hasil optimasi rute metaheuristik ILS & RVND yang konsisten 100% saat dijalankan ulang.
+- **🎨 Ultra-Premium Seamless UI & Dark Navigation Sidebar**:
+  - **Seamless Charts**: Seluruh kanvas visualisasi grafik memiliki latar belakang transparan (`rgba(0,0,0,0)`) yang menyatu indah langsung dengan halaman utama.
+  - **Dark Navy Sidebar**: Navigasi sidebar gelap berhiaskan glowing badge inisial "N" (Nuha/Network) mewah, menu interaktif berikon emoji (`🏠`, `👥`, `🚚`, `⚙️`, `📊`), tombol sekunder subtle terintegrasi, dan kartu identitas formal formal yang sangat informatif.
+- **🗺️ MDS Spasial & High-Contrast Segment Pills**: Memproyeksikan matriks jarak multi-dimensi menjadi peta jaringan koordinat 2D (MDS) rute dinamis dengan label jarak antar segmen rute berupa **mini-badge/pill berlatar belakang putih solid (`#FFFFFF`) dan border biru** agar tidak tertutup garis rute atau panah arah.
+- **⚡ Sebelum vs Setelah Optimasi (RVND)**: Panel khusus yang membandingkan performa rute heuristik dasar vs rute yang telah disempurnakan oleh RVND secara real-time, lengkap dengan persentase efisiensi jarak dan waktu kerja secara interaktif.
 - **🕒 Automatic HMS Time Formatter**: Mengonversi representasi matematis jam desimal (seperti `0.9005 jam`) menjadi waktu operasional lapangan yang intuitif (`54 menit 2 detik`) di seluruh tabel rute dan kedatangan.
 - **📊 Dynamic Gap & Event Log Analyzer**: Menganalisis fluktuasi jarak tempuh armada secara kronologis setiap kali ada kejadian dinamis baru yang masuk ke dalam sistem.
-- **📝 Inline Documentation**: Setiap metrik dan visualisasi dilengkapi expander penjelasan dinamis yang menampilkan nilai aktual dari hasil perhitungan.
+- **📝 Inline Documentation & Consolidated Expander**: Seluruh penjelasan konsep akademik (*Statis Ideal vs Dinamis*, *Dynamic Overhead Gap*) telah disatukan secara rapi menjadi satu expander panduan terpadu tanpa duplikasi teks yang membingungkan.
 
 ---
 

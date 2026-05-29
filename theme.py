@@ -326,6 +326,28 @@ hr {
     color: #64748B !important;
     margin-top: 28px;
 }
+
+/* ── Tombol khusus di Sidebar agar menyatu dengan gradien gelap ── */
+section[data-testid="stSidebar"] div.stButton > button {
+    background: rgba(30, 41, 59, 0.4) !important;
+    color: #94A3B8 !important;
+    border: 1px solid rgba(59, 130, 246, 0.15) !important;
+    box-shadow: none !important;
+    font-size: 13.5px !important;
+    font-weight: 500 !important;
+    border-radius: 8px !important;
+    padding: 8px 16px !important;
+    transition: all 0.25s ease !important;
+}
+section[data-testid="stSidebar"] div.stButton > button:hover {
+    background: rgba(59, 130, 246, 0.18) !important;
+    color: #60A5FA !important;
+    border-color: rgba(96, 165, 250, 0.35) !important;
+    transform: translateY(-1px);
+}
+section[data-testid="stSidebar"] div.stButton > button:active {
+    transform: translateY(0);
+}
 </style>
 """;
 
@@ -379,32 +401,47 @@ COVER_PAGE = """
 </div>
 """
 
-# Header sidebar: identitas aplikasi
+# Header sidebar: identitas aplikasi dengan visual mewah & modern
 SIDEBAR_HEADER = """
-<div style="text-align:center; padding: 16px 8px 8px;">
+<div style="text-align:center; padding: 24px 8px 12px;">
     <div style="
-        font-size: 18px; letter-spacing: 3px; text-transform: uppercase;
-        color: #60A5FA !important; margin-bottom: 4px;
-    ">DVRPTW</div>
-    <div style="font-size: 24px; font-weight: 700; color: #F1F5F9 !important;">
-        Optimizer
+        display: inline-flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+        border: 2px solid rgba(96, 165, 250, 0.4);
+        width: 52px; height: 52px; border-radius: 14px;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
+        margin-bottom: 12px;
+    ">
+        <span style="font-size: 24px; font-weight: 800; color: #FFFFFF !important; font-family: 'JetBrains Mono';">N</span>
     </div>
     <div style="
-        width: 32px; height: 2px; margin: 8px auto;
+        font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+        color: #93C5FD !important; margin-bottom: 2px;
+    ">Tugas Akhir · Nuha</div>
+    <div style="font-size: 21px; font-weight: 800; color: #FFFFFF !important; letter-spacing: -0.5px;">
+        DVRPTW <span style="color: #60A5FA !important; font-weight: 400;">Optimizer</span>
+    </div>
+    <div style="
+        width: 40px; height: 3px; margin: 10px auto;
+        border-radius: 2px;
         background: linear-gradient(90deg, #3B82F6, #60A5FA);
     "></div>
 </div>
 """
 
-# Footer sidebar: keterangan algoritma dan penulis
+# Footer sidebar: keterangan metode riset dan identitas akademis penulis
 SIDEBAR_FOOTER = """
 <div style="
-    margin-top: 1.5rem; padding: 10px;
-    background: rgba(30,64,175,0.08); border-radius: 8px;
-    border: 1px solid rgba(59,130,246,0.15); text-align: center;
+    margin-top: 2rem; padding: 12px 14px;
+    background: rgba(15, 23, 42, 0.6); border-radius: 10px;
+    border: 1px solid rgba(59, 130, 246, 0.12);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
 ">
-    <div style="font-size: 14px; margin: 0; opacity: 0.7; color: #94A3B8 !important;">
-        Nearest Neighbor + RVND<br>Nuha Bahiyya Al Faridha · 2026
+    <div style="font-size: 13.5px; font-weight: 600; color: #60A5FA !important; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Metode</div>
+    <div style="font-size: 13.5px; color: #E2E8F0 !important; font-family: 'JetBrains Mono'; margin-bottom: 8px; line-height: 1.4; text-align: left;">
+        • Nearest Neighbor Heuristic<br>
+        • Cheapest Insertion (Dynamic)<br>
+        • Metaheuristik RVND
     </div>
 </div>
 """

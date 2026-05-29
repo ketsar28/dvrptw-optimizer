@@ -328,11 +328,13 @@ def cheapest_insertion(new_customer_id: int,
         )
     else:
         # Jika tidak muat di rute manapun, buat rute baru (jika kendaraan masih tersedia)
-        new_path = [0, new_customer_id, 0]
-        if is_route_feasible(new_path, time_mtx, customers, depot):
-            r = Route(path=new_path)
-            r = update_route_metrics(r, dist_mtx, time_mtx, customers)
-            routes.append(r)
+        # BUG-FIX: Pastikan rute baru hanya dibuat jika jumlah rute aktif < jumlah armada maksimal (depot.max_vehicles)
+        if len(routes) < depot.max_vehicles:
+            new_path = [0, new_customer_id, 0]
+            if is_route_feasible(new_path, time_mtx, customers, depot):
+                r = Route(path=new_path)
+                r = update_route_metrics(r, dist_mtx, time_mtx, customers)
+                routes.append(r)
 
     return routes
 
@@ -806,7 +808,8 @@ def iterated_local_search(routes: List[Route],
                           customers: Dict[int, Customer],
                           depot: Depot,
                           current_time: float = 0.0,
-                          max_iters: int = 15) -> Tuple[List[Route], List[Dict]]:
+                          max_iters: int = 15,
+                          random_seed: int = None) -> Tuple[List[Route], List[Dict]]:
     """
     Iterated Local Search (ILS) Metaheuristic:
     1. Inisialisasi: Mulai dari rute input (yang didapatkan dari sequential_insertion atau cheapest_insertion).
@@ -817,6 +820,10 @@ def iterated_local_search(routes: List[Route],
        c. Terapkan RVND pada hasil local search.
        d. Jika hasil baru lebih baik (total jarak lebih kecil), update best_routes.
     """
+    if random_seed is not None:
+        random.seed(random_seed)
+        np.random.seed(random_seed)
+        
     log = []
     
     # Fase 1 & 2: Local Search deterministik awal dilanjutkan dengan RVND
@@ -868,6 +875,7 @@ def run_dvrptw_simulation(
     depot: Depot,
     time_step: float = 0.05,    # interval langkah simulasi (jam)
     apply_rvnd: bool = True,
+    random_seed: int = None,
 ) -> Dict:
     """
     Simulasi DVRPTW lengkap dengan tahapan:
@@ -878,6 +886,10 @@ def run_dvrptw_simulation(
        (non-preemption — cheapest insertion)
     5. Jalankan Iterated Local Search (ILS) untuk optimasi pada rute sisa yang belum ditempuh
     """
+    if random_seed is not None:
+        random.seed(random_seed)
+        np.random.seed(random_seed)
+
     # Pisahkan pelanggan berdasarkan tipe: statis (diketahui sejak awal) vs dinamis
     static_ids = [c.id for c in customers.values() if not c.is_dynamic]
     dynamic_pool = {c.id: c for c in customers.values() if c.is_dynamic}
@@ -893,7 +905,7 @@ def run_dvrptw_simulation(
     if apply_rvnd and ideal_static_routes:
         ideal_static_routes, _ = iterated_local_search(
             ideal_static_routes, dist_mtx, time_mtx, customers,
-            depot, current_time=depot.tw_open
+            depot, current_time=depot.tw_open, random_seed=random_seed
         )
     ideal_static_dist = total_distance(ideal_static_routes, dist_mtx)
 
@@ -908,7 +920,7 @@ def run_dvrptw_simulation(
     if apply_rvnd and initial_routes:
         initial_routes, init_log = iterated_local_search(
             initial_routes, dist_mtx, time_mtx, customers,
-            depot, current_time=depot.tw_open
+            depot, current_time=depot.tw_open, random_seed=random_seed
         )
     else:
         init_log = []
@@ -963,7 +975,7 @@ def run_dvrptw_simulation(
             if apply_rvnd:
                 current_routes, _ = iterated_local_search(
                     current_routes, dist_mtx, time_mtx, customers,
-                    depot, current_time=t
+                    depot, current_time=t, random_seed=random_seed
                 )
                 events.append({
                     "time": round(t, 4),
@@ -986,7 +998,7 @@ def run_dvrptw_simulation(
             if apply_rvnd:
                 current_routes, _ = iterated_local_search(
                     current_routes, dist_mtx, time_mtx, customers,
-                    depot, current_time=depot.tw_close
+                    depot, current_time=depot.tw_close, random_seed=random_seed
                 )
 
     # ──────────────────────────────────────────────
