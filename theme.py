@@ -212,7 +212,7 @@ hr {
     font-size: 13px; color: #94A3B8; margin-top: 12px;
 }
 .hero-banner .divider {
-    width: 48px; height: 2px; margin: 12px 0;
+    width: 100%; height: 3px; margin: 12px 0;
     background: linear-gradient(90deg, #3B82F6, #60A5FA);
 }
 
@@ -419,10 +419,10 @@ SIDEBAR_HEADER = """
         color: #93C5FD !important; margin-bottom: 2px;
     ">Tugas Akhir · Nuha</div>
     <div style="font-size: 21px; font-weight: 800; color: #FFFFFF !important; letter-spacing: -0.5px;">
-        DVRPTW <span style="color: #60A5FA !important; font-weight: 400;">Optimizer</span>
+        DVRPTW Optimizer
     </div>
     <div style="
-        width: 40px; height: 3px; margin: 10px auto;
+        width: 100%; height: 3px; margin: 10px auto;
         border-radius: 2px;
         background: linear-gradient(90deg, #3B82F6, #60A5FA);
     "></div>

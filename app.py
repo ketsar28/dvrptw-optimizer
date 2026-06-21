@@ -239,7 +239,7 @@ if st.sidebar.button("⚠️ Reset Semua Data", use_container_width=True):
         except Exception:
             pass
     st.rerun()
-st.sidebar.markdown(SIDEBAR_FOOTER, unsafe_allow_html=True)
+# st.sidebar.markdown(SIDEBAR_FOOTER, unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════

@@ -1,4 +1,5 @@
 # 🚚 DVRPTW Optimizer — Dynamic Vehicle Routing Problem with Time Windows
+
 ### Sistem Pendukung Keputusan (DSS) untuk Optimasi Rute Logistik Dinamis Berbasis Heuristik & Pencarian Lokal
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -140,14 +141,14 @@ Aplikasi akan berjalan di `http://localhost:8501`
 
 ## 🔬 Parameter Model DVRPTW
 
-| Parameter | Deskripsi | Nilai Default |
-|-----------|-----------|---------------|
-| `tw_open` | Jam buka depot (e₀) | 4.0 (04:00) |
-| `tw_close` | Jam tutup depot (l₀) | 7.0 (07:00) |
-| `capacity` | Kapasitas per kendaraan (Q) | 2.500 kg |
-| `speed` | Kecepatan rata-rata | 60 km/jam |
-| `max_vehicles` | Jumlah kendaraan tersedia | 2 kendaraan |
-| `time_step` | Interval simulasi | 0.05 jam |
+| Parameter        | Deskripsi                   | Nilai Default |
+| ---------------- | --------------------------- | ------------- |
+| `tw_open`      | Jam buka depot (e₀)        | 4.0 (04:00)   |
+| `tw_close`     | Jam tutup depot (l₀)       | 7.0 (07:00)   |
+| `capacity`     | Kapasitas per kendaraan (Q) | 2.500 kg      |
+| `speed`        | Kecepatan rata-rata         | 60 km/jam     |
+| `max_vehicles` | Jumlah kendaraan tersedia   | 2 kendaraan   |
+| `time_step`    | Interval simulasi           | 0.05 jam      |
 
 ---
 
@@ -156,7 +157,6 @@ Aplikasi akan berjalan di `http://localhost:8501`
 1. **Sequential Insertion Heuristic** — Konstruksi solusi rute awal yang robust & feasible
 2. **Cheapest Insertion** — Penyisipan pelanggan dinamis dengan biaya tambahan minimal
 3. **Iterated Local Search (ILS) & RVND Metaheuristic** — Optimasi pencarian lokal metaheuristik iteratif dengan perturbasi sekuensial dan 5 operator neighborhood acak
-
 
 ---
 
