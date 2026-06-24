@@ -1,4 +1,4 @@
-# 🚚 DVRPTW Optimizer — Dynamic Vehicle Routing Problem with Time Windows
+# DVRPTW Optimizer — Dynamic Vehicle Routing Problem with Time Windows
 
 ### Sistem Pendukung Keputusan (DSS) untuk Optimasi Rute Logistik Dinamis Berbasis Heuristik & Pencarian Lokal
 
@@ -7,34 +7,34 @@
 
 ---
 
-## 📋 Deskripsi
+## Deskripsi
 
-Aplikasi ini dikembangkan untuk menjawab tantangan manajemen logistik modern yang dinamis. Dalam operasional logistik dunia nyata, efisiensi bukan lagi sekadar pilihan, melainkan keharusan untuk bertahan. Namun, tantangan terbesar muncul ketika **pesanan pelanggan baru masuk secara mendadak** saat armada kendaraan sudah di perjalanan. Bagaimana menentukan rute terbaik secara real-time tanpa mengganggu pengiriman yang sedang berjalan?
+Aplikasi ini dikembangkan untuk menjawab tantangan manajemen logistik modern yang dinamis. Dalam operasional logistik dunia nyata, efisiensi bukan lagi sekadar pilihan, melainkan keharusan untuk bertahan. Namun, tantangan terbesar muncul ketika pesanan pelanggan baru masuk secara mendadak saat armada kendaraan sudah di perjalanan. Bagaimana menentukan rute terbaik secara real-time tanpa mengganggu pengiriman yang sedang berjalan?
 
-Sistem Pendukung Keputusan (SPK) cerdas ini dibangun secara khusus untuk memodelkan dan menyelesaikan **Dynamic Vehicle Routing Problem with Time Windows (DVRPTW)** menggunakan kombinasi metaheuristik modern **Iterated Local Search (ILS)** yang mengintegrasikan **Sequential Insertion Heuristic**, **Cheapest Insertion**, **Deterministic Local Search**, dan **Randomized Variable Neighborhood Descent (RVND)** dengan mekanisme **Perturbasi Sekuensial**. Proses penjadwalan dan pengalihan rute dinamis yang sebelumnya rawan *human error* kini dapat dioptimalkan secara otomatis dan presisi secara matematis.
+Sistem Pendukung Keputusan (SPK) ini dibangun secara khusus untuk memodelkan dan menyelesaikan Dynamic Vehicle Routing Problem with Time Windows (DVRPTW) menggunakan kombinasi metaheuristik modern Iterated Local Search (ILS) yang mengintegrasikan Sequential Insertion Heuristic, Cheapest Insertion, Deterministic Local Search, dan Randomized Variable Neighborhood Descent (RVND) dengan mekanisme Perturbasi Sekuensial. Proses penjadwalan dan pengalihan rute dinamis yang sebelumnya rawan kesalahan manual kini dapat dioptimalkan secara otomatis dan presisi secara matematis.
 
 ---
 
-## 📋 Mengapa Proyek Ini Penting?
+## Urgensi dan Latar Belakang Proyek
 
-Berdasarkan studi kasus logistik, perencanaan rute secara manual memiliki celah kelemahan yang sangat besar ketika menghadapi perubahan informasi yang cepat (elemen dinamis). Manusia sangat kesulitan menghitung puluhan variabel pengiriman secara serentak di bawah tekanan waktu, yang meliputi:
+Perencanaan rute secara manual memiliki celah kelemahan yang sangat besar ketika menghadapi perubahan informasi yang cepat (elemen dinamis). Sangat sulit menghitung puluhan variabel pengiriman secara serentak di bawah tekanan waktu, yang meliputi:
 
 - **Jam Buka-Tutup Depot (Time Windows)**: Kendaraan harus kembali ke depot sebelum batas waktu operasional berakhir.
 - **Kapasitas Muat Terbatas (Capacity Constraint)**: Setiap armada memiliki batas muatan homogen (maksimal 2.500 kg) yang tidak boleh dilanggar.
 - **Asumsi Non-Preemption**: Kendaraan yang sedang menuju ke suatu lokasi tidak boleh mendadak putar balik di tengah jalan; mereka harus menyelesaikan pengantaran ke node yang dituju (*committed*) sebelum beralih ke pesanan dinamis baru.
 - **Overhead Jarak**: Munculnya pesanan dinamis secara mendadak memicu pembengkakan jarak tempuh (*Dynamic Overhead Gap*) yang harus ditekan seminimal mungkin.
 
-### Dampak Negatif Rute Manual (Dasar Perancangan Sistem):
+### Dampak Negatif Perencanaan Rute Manual:
 
-1. **📈 Pembengkakan Biaya & Jarak**: Rute tanpa perencanaan matematis memicu rute memutar, konsumsi BBM boros, dan waktu tempuh lama.
-2. **⏰ Pelanggaran Jendela Waktu**: Keterlambatan akibat salah urutan pengiriman menurunkan kepuasan pelanggan dan reputasi perusahaan.
-3. **⚖️ Ketimpangan Utilitas Kendaraan**: Salah satu armada terbebani penuh sedangkan armada lainnya menganggur dengan sisa kapasitas yang besar.
+1. **Pembengkakan Jarak dan Biaya**: Rute tanpa perencanaan matematis memicu rute memutar, konsumsi BBM boros, dan waktu tempuh lama.
+2. **Pelanggaran Batasan Jendela Waktu**: Keterlambatan akibat urutan pengiriman yang salah menurunkan kepuasan pelanggan dan reputasi pelayanan.
+3. **Ketimpangan Utilitas Kendaraan**: Salah satu armada terbeban penuh sedangkan armada lainnya menganggur dengan sisa kapasitas yang besar.
 
 ---
 
-## 🎯 Solusi yang Ditawarkan
+## Solusi yang Ditawarkan
 
-Fokus utama aplikasi ini adalah menghasilkan rute logistik dinamis yang **layak (feasible)** dan **paling efisien** dengan meminimalkan total jarak tempuh seluruh armada. Sistem mengombinasikan tiga algoritma tangguh:
+Fokus utama aplikasi ini adalah menghasilkan rute logistik dinamis yang layak (feasible) dan paling efisien dengan meminimalkan total jarak tempuh seluruh armada. Sistem mengombinasikan tiga algoritma utama:
 
 1. **Sequential Insertion Heuristic**: Membangun rute awal secara sekuensial dari daftar pelanggan statis (pesanan yang diketahui sejak awal hari) dengan menyisipkan node pelanggan secara bertahap pada posisi dengan biaya minimum dengan tetap menjaga feasibility kapasitas dan jendela waktu.
 2. **Cheapest Insertion**: Ketika pesanan dinamis baru muncul di tengah hari, sistem menyisipkannya ke posisi rute berjalan yang menghasilkan tambahan jarak (*insertion cost*) paling minimal, dengan tetap menaati batas non-preemption.
@@ -45,29 +45,29 @@ Fokus utama aplikasi ini adalah menghasilkan rute logistik dinamis yang **layak 
 
 ---
 
-## ⚙️ Fitur Utama Aplikasi
+## Fitur Utama Aplikasi
 
-- **💻 Interactive Dashboard Web**: Antarmuka web interaktif yang modern dan premium menggunakan Streamlit dengan navigasi bersih beraksen biru profesional.
-- **📥 File System Automation & Dynamic Caching**: Membaca dataset logistik lengkap secara otomatis melalui unggahan file JSON dengan sistem path caching yang dinamis dan portabel untuk berbagai sistem operasi.
-- **🛡️ Dynamic Fleet Capacity Enforcement**: Menjamin kelayakan operasional secara ketat dengan membatasi jumlah rute agar tidak melebihi kapasitas armada maksimal homogen yang dikonfigurasi oleh pengguna.
-- **🎯 Academic Reproducibility (Fixed Seed)**: Dilengkapi dengan fitur **"Kunci Acakan (Fixed Seed)"** menggunakan parameter acuan acak matematis interaktif untuk menghasilkan hasil optimasi rute metaheuristik ILS & RVND yang konsisten 100% saat dijalankan ulang.
-- **🎨 Ultra-Premium Seamless UI & Dark Navigation Sidebar**:
-  - **Seamless Charts**: Seluruh kanvas visualisasi grafik memiliki latar belakang transparan (`rgba(0,0,0,0)`) yang menyatu indah langsung dengan halaman utama.
-  - **Dark Navy Sidebar**: Navigasi sidebar gelap berhiaskan glowing badge inisial "N" (Network/Navigation) mewah, menu interaktif berikon emoji (`🏠`, `👥`, `🚚`, `⚙️`, `📊`), tombol sekunder subtle terintegrasi, dan kartu identitas formal formal yang sangat informatif.
-- **🗺️ MDS Spasial & High-Contrast Segment Pills**: Memproyeksikan matriks jarak multi-dimensi menjadi peta jaringan koordinat 2D (MDS) rute dinamis dengan label jarak antar segmen rute berupa **mini-badge/pill berlatar belakang putih solid (`#FFFFFF`) dan border biru** agar tidak tertutup garis rute atau panah arah.
-- **⚡ Sebelum vs Setelah Optimasi (RVND)**: Panel khusus yang membandingkan performa rute heuristik dasar vs rute yang telah disempurnakan oleh RVND secara real-time, lengkap dengan persentase efisiensi jarak dan waktu kerja secara interaktif.
-- **🕒 Automatic HMS Time Formatter**: Mengonversi representasi matematis jam desimal (seperti `0.9005 jam`) menjadi waktu operasional lapangan yang intuitif (`54 menit 2 detik`) di seluruh tabel rute dan kedatangan.
-- **📊 Dynamic Gap & Event Log Analyzer**: Menganalisis fluktuasi jarak tempuh armada secara kronologis setiap kali ada kejadian dinamis baru yang masuk ke dalam sistem.
-- **📝 Inline Documentation & Consolidated Expander**: Seluruh penjelasan konsep akademik (*Statis Ideal vs Dinamis*, *Dynamic Overhead Gap*) telah disatukan secara rapi menjadi satu expander panduan terpadu tanpa duplikasi teks yang membingungkan.
+- **Interactive Dashboard Web**: Antarmuka web interaktif yang modern dan premium menggunakan Streamlit dengan navigasi bersih beraksen biru profesional.
+- **Otomatisasi Sistem File dan Caching Dinamis**: Membaca dataset logistik lengkap secara otomatis melalui unggahan file JSON dengan sistem path caching yang dinamis dan portabel untuk berbagai sistem operasi.
+- **Penegakan Dinamis Kapasitas Armada**: Menjamin kelayakan operasional secara ketat dengan membatasi jumlah rute agar tidak melebihi kapasitas armada maksimal homogen yang dikonfigurasi oleh pengguna.
+- **Reproduksibilitas Akademis (Fixed Seed)**: Dilengkapi dengan fitur "Kunci Acakan (Fixed Seed)" menggunakan parameter acuan acak matematis interaktif untuk menghasilkan hasil optimasi rute metaheuristik ILS & RVND yang konsisten 100% saat dijalankan ulang.
+- **Desain Antarmuka Premium dan Navigasi Sidebar**:
+  - **Seamless Charts**: Seluruh kanvas visualisasi grafik memiliki latar belakang transparan (`rgba(0,0,0,0)`) yang menyatu langsung dengan halaman utama.
+  - **Dark Navy Sidebar**: Navigasi sidebar gelap berhiaskan glowing badge inisial "N" (Network/Navigation) mewah, menu interaktif yang rapi, tombol sekunder yang terintegrasi, dan kartu identitas formal yang sangat informatif.
+- **MDS Spasial dan Segment Pills Kontras Tinggi**: Memproyeksikan matriks jarak multi-dimensi menjadi peta jaringan koordinat 2D (MDS) rute dinamis dengan label jarak antar segmen rute berupa mini-badge/pill berlatar belakang putih solid (`#FFFFFF`) dan border biru agar tidak tertutup garis rute atau panah arah.
+- **Komparasi Sebelum vs Setelah Optimasi (RVND)**: Panel khusus yang membandingkan performa rute heuristik dasar vs rute yang telah disempurnakan oleh RVND secara real-time, lengkap dengan persentase efisiensi jarak dan waktu kerja secara interaktif.
+- **Format Waktu Otomatis (Jam, Menit, Detik)**: Mengonversi representasi matematis jam desimal (seperti `0.9005 jam`) menjadi waktu operasional lapangan yang intuitif (`54 menit 2 detik`) di seluruh tabel rute dan kedatangan.
+- **Analisis Celah Dinamis (Dynamic Gap) dan Log Kejadian**: Menganalisis fluktuasi jarak tempuh armada secara kronologis setiap kali ada kejadian dinamis baru yang masuk ke dalam sistem.
+- **Dokumentasi Terintegrasi dan Expander Konsolidasian**: Seluruh penjelasan konsep akademik (Statis Ideal vs Dinamis, Dynamic Overhead Gap) telah disatukan secara rapi menjadi satu expander panduan terpadu tanpa duplikasi teks yang membingungkan.
 
 ---
 
-## 🛠️ Instalasi & Eksekusi Cepat
+## Panduan Instalasi dan Eksekusi
 
 ### 1. Clone / Unduh Repositori
 
 ```bash
-git clone https://github.com/username/dvrptw-optimizer.git
+git clone https://github.com/ketsar28/dvrptw-optimizer.git
 cd dvrptw-optimizer
 ```
 
@@ -89,7 +89,7 @@ Aplikasi akan berjalan di `http://localhost:8501`
 
 ---
 
-## 📁 Struktur Kode Proyek
+## Struktur Repositori
 
 ```
 ├── app.py              # Dashboard Streamlit Utama (UI & Visualisasi)
@@ -102,7 +102,7 @@ Aplikasi akan berjalan di `http://localhost:8501`
 
 ---
 
-## 📊 Alur Kerja Sistem
+## Alur Kerja Sistem
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -139,7 +139,7 @@ Aplikasi akan berjalan di `http://localhost:8501`
 
 ---
 
-## 🔬 Parameter Model DVRPTW
+## Parameter Model DVRPTW
 
 | Parameter        | Deskripsi                   | Nilai Default |
 | ---------------- | --------------------------- | ------------- |
@@ -152,7 +152,7 @@ Aplikasi akan berjalan di `http://localhost:8501`
 
 ---
 
-## 📚 Referensi Algoritma
+## Referensi Algoritma
 
 1. **Sequential Insertion Heuristic** — Konstruksi solusi rute awal yang robust & feasible
 2. **Cheapest Insertion** — Penyisipan pelanggan dinamis dengan biaya tambahan minimal
