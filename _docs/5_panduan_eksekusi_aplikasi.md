@@ -17,7 +17,7 @@ Terdapat dua opsi untuk mendapatkan berkas proyek, baik melalui GitHub maupun Go
 ### Opsi B: Melalui Google Drive
 - Buka tautan folder Google Drive: https://drive.google.com/drive/folders/1uIFANk-9ww8SpLWHF_WQoJTA1sdLoRbk
 - Masuk ke folder **PROGRAM** dan unduh folder tersebut (Google Drive akan otomatis mengompresnya menjadi berkas ZIP).
-- Ekstrak berkas ZIP hasil unduhan ke komputer Anda.
+- Ekstrak berkas ZIP hasil unduhan ke komputer.
 - **Penting**: Pastikan seluruh struktur berkas di dalam folder hasil ekstraksi tetap utuh dan berada dalam satu tingkat direktori yang sama, yaitu:
   - Folder: `_data`
   - Folder: `.streamlit`
