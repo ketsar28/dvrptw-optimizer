@@ -402,7 +402,7 @@ def or_opt_improve(route: Route, dist_mtx: np.ndarray,
                    depot: Depot,
                    current_time: float = 0.0) -> Tuple[Route, bool]:
     """
-    Or-Opt: pindahkan segmen 1 atau 2 node ke posisi lain dalam rute.
+    Or-Opt (Or-Opt-2): pindahkan segmen 2 node berurutan ke posisi lain dalam rute.
     Hanya mengubah bagian rute yang belum dikunjungi (uncommitted).
     """
     path = route.path
@@ -413,26 +413,70 @@ def or_opt_improve(route: Route, dist_mtx: np.ndarray,
     c_idx = get_committed_index(path, time_mtx, customers, depot.tw_open, current_time)
     start_pos = max(1, c_idx + 1)
 
-    for seg_len in [1, 2]:
-        for i in range(start_pos, len(path) - 1 - seg_len + 1):
-            seg = path[i:i + seg_len]
-            base = path[:i] + path[i + seg_len:]
+    # Hanya memindahkan segmen panjang 2
+    for i in range(start_pos, len(path) - 1 - 2 + 1):
+        seg = path[i:i + 2]
+        base = path[:i] + path[i + 2:]
 
-            # Cari posisi penempatan baru yang juga di belakang committed node
-            base_c_idx = get_committed_index(
-                base, time_mtx, customers, depot.tw_open, current_time
-            )
-            insert_start = max(1, base_c_idx + 1)
+        # Cari posisi penempatan baru yang juga di belakang committed node
+        base_c_idx = get_committed_index(
+            base, time_mtx, customers, depot.tw_open, current_time
+        )
+        insert_start = max(1, base_c_idx + 1)
 
-            for j in range(insert_start, len(base)):
-                candidate = base[:j] + seg + base[j:]
-                if not is_route_feasible(candidate, time_mtx, customers, depot):
-                    continue
-                d = route_distance(candidate, dist_mtx)
-                if d + 1e-9 < best_dist:
-                    best_dist = d
-                    best_path = candidate
-                    improved = True
+        for j in range(insert_start, len(base)):
+            candidate = base[:j] + seg + base[j:]
+            if not is_route_feasible(candidate, time_mtx, customers, depot):
+                continue
+            d = route_distance(candidate, dist_mtx)
+            if d + 1e-9 < best_dist:
+                best_dist = d
+                best_path = candidate
+                improved = True
+
+    if improved:
+        route.path = best_path
+        route = update_route_metrics(route, dist_mtx, time_mtx, customers)
+    return route, improved
+
+
+def reinsertion_improve(route: Route, dist_mtx: np.ndarray,
+                        time_mtx: np.ndarray,
+                        customers: Dict[int, Customer],
+                        depot: Depot,
+                        current_time: float = 0.0) -> Tuple[Route, bool]:
+    """
+    Reinsertion (Or-Opt-1): pindahkan 1 node uncommitted ke posisi lain dalam rute.
+    Hanya mengubah bagian rute yang belum dikunjungi (uncommitted).
+    """
+    path = route.path
+    best_path = path[:]
+    best_dist = route.total_distance
+    improved = False
+
+    c_idx = get_committed_index(path, time_mtx, customers, depot.tw_open, current_time)
+    start_pos = max(1, c_idx + 1)
+
+    # Hanya memindahkan segmen panjang 1 (1 pelanggan)
+    for i in range(start_pos, len(path) - 1):
+        node = path[i]
+        base = path[:i] + path[i + 1:]
+
+        # Cari posisi penempatan baru yang juga di belakang committed node
+        base_c_idx = get_committed_index(
+            base, time_mtx, customers, depot.tw_open, current_time
+        )
+        insert_start = max(1, base_c_idx + 1)
+
+        for j in range(insert_start, len(base)):
+            candidate = base[:j] + [node] + base[j:]
+            if not is_route_feasible(candidate, time_mtx, customers, depot):
+                continue
+            d = route_distance(candidate, dist_mtx)
+            if d + 1e-9 < best_dist:
+                best_dist = d
+                best_path = candidate
+                improved = True
 
     if improved:
         route.path = best_path
@@ -479,13 +523,13 @@ def exchange_improve(route: Route, dist_mtx: np.ndarray,
 # PENCARIAN LOKAL — PERBAIKAN INTER-RUTE (ANTAR DUA RUTE)
 # ─────────────────────────────────────────────────────────────
 
-def relocate_inter(routes: List[Route], dist_mtx: np.ndarray,
-                   time_mtx: np.ndarray,
-                   customers: Dict[int, Customer],
-                   depot: Depot,
-                   current_time: float = 0.0) -> Tuple[List[Route], bool]:
+def shift_1_0_inter(routes: List[Route], dist_mtx: np.ndarray,
+                     time_mtx: np.ndarray,
+                     customers: Dict[int, Customer],
+                     depot: Depot,
+                     current_time: float = 0.0) -> Tuple[List[Route], bool]:
     """
-    Relocate: pindahkan satu node uncommitted dari satu rute ke rute lain.
+    Shift(1,0) / Relocate: pindahkan satu node uncommitted dari satu rute ke rute lain.
     Berguna saat satu rute terlalu padat dan rute lain masih punya sisa kapasitas.
     """
     best_saving = 0.0
@@ -540,11 +584,11 @@ def relocate_inter(routes: List[Route], dist_mtx: np.ndarray,
     return routes, False
 
 
-def swap_inter(routes: List[Route], dist_mtx: np.ndarray,
-               time_mtx: np.ndarray,
-               customers: Dict[int, Customer],
-               depot: Depot,
-               current_time: float = 0.0) -> Tuple[List[Route], bool]:
+def swap_1_1_inter(routes: List[Route], dist_mtx: np.ndarray,
+                   time_mtx: np.ndarray,
+                   customers: Dict[int, Customer],
+                   depot: Depot,
+                   current_time: float = 0.0) -> Tuple[List[Route], bool]:
     """
     Swap(1,1): tukar satu node uncommitted antara dua rute berbeda.
     Bisa menghasilkan distribusi muatan yang lebih seimbang antar kendaraan.
@@ -595,6 +639,238 @@ def swap_inter(routes: List[Route], dist_mtx: np.ndarray,
     return routes, False
 
 
+def shift_2_0_inter(routes: List[Route], dist_mtx: np.ndarray,
+                     time_mtx: np.ndarray,
+                     customers: Dict[int, Customer],
+                     depot: Depot,
+                     current_time: float = 0.0) -> Tuple[List[Route], bool]:
+    """
+    Shift(2,0): memindahkan 2 node uncommitted berurutan dari satu rute ke rute lain.
+    """
+    best_saving = 0.0
+    best_move = None
+
+    for r1_idx in range(len(routes)):
+        for r2_idx in range(len(routes)):
+            if r1_idx == r2_idx:
+                continue
+            r1, r2 = routes[r1_idx], routes[r2_idx]
+            
+            c_idx1 = get_committed_index(
+                r1.path, time_mtx, customers, depot.tw_open, current_time
+            )
+            start_pos1 = max(1, c_idx1 + 1)
+            
+            # Segmen panjang 2 harus berada di dalam batas uncommitted
+            for i in range(start_pos1, len(r1.path) - 2):
+                seg = r1.path[i : i+2]
+                new_r1_path = r1.path[:i] + r1.path[i+2:]
+                
+                c_idx2 = get_committed_index(
+                    r2.path, time_mtx, customers, depot.tw_open, current_time
+                )
+                start_pos2 = max(1, c_idx2 + 1)
+                
+                for j in range(start_pos2, len(r2.path)):
+                    new_r2_path = r2.path[:j] + seg + r2.path[j:]
+                    
+                    if (not is_route_feasible(new_r1_path, time_mtx, customers, depot) or
+                            not is_route_feasible(new_r2_path, time_mtx, customers, depot)):
+                        continue
+                        
+                    old_cost = r1.total_distance + r2.total_distance
+                    new_cost = (route_distance(new_r1_path, dist_mtx) +
+                                route_distance(new_r2_path, dist_mtx))
+                    saving = old_cost - new_cost
+                    
+                    if saving > best_saving + 1e-9:
+                        best_saving = saving
+                        best_move = (r1_idx, r2_idx, new_r1_path, new_r2_path)
+
+    if best_move:
+        r1i, r2i, p1, p2 = best_move
+        routes[r1i].path = p1
+        routes[r2i].path = p2
+        routes[r1i] = update_route_metrics(routes[r1i], dist_mtx, time_mtx, customers)
+        routes[r2i] = update_route_metrics(routes[r2i], dist_mtx, time_mtx, customers)
+        routes = [r for r in routes if not r.is_empty]
+        return routes, True
+
+    return routes, False
+
+
+def swap_2_1_inter(routes: List[Route], dist_mtx: np.ndarray,
+                     time_mtx: np.ndarray,
+                     customers: Dict[int, Customer],
+                     depot: Depot,
+                     current_time: float = 0.0) -> Tuple[List[Route], bool]:
+    """
+    Swap(2,1): menukar 2 node uncommitted berurutan di rute A dengan 1 node uncommitted di rute B.
+    """
+    best_saving = 0.0
+    best_move = None
+
+    for r1_idx in range(len(routes)):
+        for r2_idx in range(len(routes)):
+            if r1_idx == r2_idx:
+                continue
+            r1, r2 = routes[r1_idx], routes[r2_idx]
+            
+            c_idx1 = get_committed_index(
+                r1.path, time_mtx, customers, depot.tw_open, current_time
+            )
+            start_pos1 = max(1, c_idx1 + 1)
+            
+            c_idx2 = get_committed_index(
+                r2.path, time_mtx, customers, depot.tw_open, current_time
+            )
+            start_pos2 = max(1, c_idx2 + 1)
+            
+            # Ambil 2 node dari r1, 1 node dari r2
+            for i in range(start_pos1, len(r1.path) - 2):
+                seg1 = r1.path[i : i+2]
+                
+                for j in range(start_pos2, len(r2.path) - 1):
+                    node2 = r2.path[j]
+                    
+                    p1 = r1.path[:i] + [node2] + r1.path[i+2:]
+                    p2 = r2.path[:j] + seg1 + r2.path[j+1:]
+                    
+                    if (not is_route_feasible(p1, time_mtx, customers, depot) or
+                            not is_route_feasible(p2, time_mtx, customers, depot)):
+                        continue
+                        
+                    old_cost = r1.total_distance + r2.total_distance
+                    new_cost = route_distance(p1, dist_mtx) + route_distance(p2, dist_mtx)
+                    saving = old_cost - new_cost
+                    
+                    if saving > best_saving + 1e-9:
+                        best_saving = saving
+                        best_move = (r1_idx, r2_idx, p1, p2)
+
+    if best_move:
+        r1i, r2i, p1, p2 = best_move
+        routes[r1i].path = p1
+        routes[r2i].path = p2
+        routes[r1i] = update_route_metrics(routes[r1i], dist_mtx, time_mtx, customers)
+        routes[r2i] = update_route_metrics(routes[r2i], dist_mtx, time_mtx, customers)
+        return routes, True
+
+    return routes, False
+
+
+def swap_2_2_inter(routes: List[Route], dist_mtx: np.ndarray,
+                     time_mtx: np.ndarray,
+                     customers: Dict[int, Customer],
+                     depot: Depot,
+                     current_time: float = 0.0) -> Tuple[List[Route], bool]:
+    """
+    Swap(2,2): menukar 2 node uncommitted berurutan di rute A dengan 2 node uncommitted berurutan di rute B.
+    """
+    best_saving = 0.0
+    best_move = None
+
+    for r1_idx in range(len(routes)):
+        for r2_idx in range(r1_idx + 1, len(routes)):
+            r1, r2 = routes[r1_idx], routes[r2_idx]
+            
+            c_idx1 = get_committed_index(
+                r1.path, time_mtx, customers, depot.tw_open, current_time
+            )
+            start_pos1 = max(1, c_idx1 + 1)
+            
+            c_idx2 = get_committed_index(
+                r2.path, time_mtx, customers, depot.tw_open, current_time
+            )
+            start_pos2 = max(1, c_idx2 + 1)
+            
+            for i in range(start_pos1, len(r1.path) - 2):
+                seg1 = r1.path[i : i+2]
+                
+                for j in range(start_pos2, len(r2.path) - 2):
+                    seg2 = r2.path[j : j+2]
+                    
+                    p1 = r1.path[:i] + seg2 + r1.path[i+2:]
+                    p2 = r2.path[:j] + seg1 + r2.path[j+2:]
+                    
+                    if (not is_route_feasible(p1, time_mtx, customers, depot) or
+                            not is_route_feasible(p2, time_mtx, customers, depot)):
+                        continue
+                        
+                    old_cost = r1.total_distance + r2.total_distance
+                    new_cost = route_distance(p1, dist_mtx) + route_distance(p2, dist_mtx)
+                    saving = old_cost - new_cost
+                    
+                    if saving > best_saving + 1e-9:
+                        best_saving = saving
+                        best_move = (r1_idx, r2_idx, p1, p2)
+
+    if best_move:
+        r1i, r2i, p1, p2 = best_move
+        routes[r1i].path = p1
+        routes[r2i].path = p2
+        routes[r1i] = update_route_metrics(routes[r1i], dist_mtx, time_mtx, customers)
+        routes[r2i] = update_route_metrics(routes[r2i], dist_mtx, time_mtx, customers)
+        return routes, True
+
+    return routes, False
+
+
+def cross_inter(routes: List[Route], dist_mtx: np.ndarray,
+                time_mtx: np.ndarray,
+                customers: Dict[int, Customer],
+                depot: Depot,
+                current_time: float = 0.0) -> Tuple[List[Route], bool]:
+    """
+    Cross: menukar bagian ekor (segmen dari posisi potong ke depot akhir) antar dua rute.
+    """
+    best_saving = 0.0
+    best_move = None
+
+    for r1_idx in range(len(routes)):
+        for r2_idx in range(r1_idx + 1, len(routes)):
+            r1, r2 = routes[r1_idx], routes[r2_idx]
+            
+            c_idx1 = get_committed_index(
+                r1.path, time_mtx, customers, depot.tw_open, current_time
+            )
+            start_pos1 = max(1, c_idx1 + 1)
+            
+            c_idx2 = get_committed_index(
+                r2.path, time_mtx, customers, depot.tw_open, current_time
+            )
+            start_pos2 = max(1, c_idx2 + 1)
+            
+            for i in range(start_pos1, len(r1.path) - 1):
+                for j in range(start_pos2, len(r2.path) - 1):
+                    # Tukar bagian ekor: r1.path[i:-1] ditukar dengan r2.path[j:-1]
+                    p1 = r1.path[:i] + r2.path[j:-1] + [0]
+                    p2 = r2.path[:j] + r1.path[i:-1] + [0]
+                    
+                    if (not is_route_feasible(p1, time_mtx, customers, depot) or
+                            not is_route_feasible(p2, time_mtx, customers, depot)):
+                        continue
+                        
+                    old_cost = r1.total_distance + r2.total_distance
+                    new_cost = route_distance(p1, dist_mtx) + route_distance(p2, dist_mtx)
+                    saving = old_cost - new_cost
+                    
+                    if saving > best_saving + 1e-9:
+                        best_saving = saving
+                        best_move = (r1_idx, r2_idx, p1, p2)
+
+    if best_move:
+        r1i, r2i, p1, p2 = best_move
+        routes[r1i].path = p1
+        routes[r2i].path = p2
+        routes[r1i] = update_route_metrics(routes[r1i], dist_mtx, time_mtx, customers)
+        routes[r2i] = update_route_metrics(routes[r2i], dist_mtx, time_mtx, customers)
+        routes = [r for r in routes if not r.is_empty]
+        return routes, True
+
+    return routes, False
+
+
 # ─────────────────────────────────────────────────────────────
 # RVND — RANDOMIZED VARIABLE NEIGHBORHOOD DESCENT
 # ─────────────────────────────────────────────────────────────
@@ -606,9 +882,9 @@ def rvnd_optimize(routes: List[Route],
                   depot: Depot,
                   current_time: float = 0.0) -> Tuple[List[Route], List[Dict]]:
     """
-    RVND: optimasi lokal dengan 5 struktur neighborhood secara acak.
-    Operator intra-rute: 2-Opt, Or-Opt, Exchange.
-    Operator inter-rute: Relocate, Swap(1,1).
+    RVND: optimasi lokal dengan 10 struktur neighborhood secara acak.
+    Operator intra-rute: 2-Opt, Or-Opt, Reinsertion, Exchange.
+    Operator inter-rute: Shift(1,0), Shift(2,0), Swap(1,1), Swap(2,1), Swap(2,2), Cross.
 
     Mengunci node-node yang sudah dikunjungi (committed) agar tidak diubah.
     Proses berulang sampai tidak ada perbaikan lagi di semua neighborhood.
@@ -620,6 +896,7 @@ def rvnd_optimize(routes: List[Route],
     intra_ops = [
         ("2-Opt", two_opt_improve),
         ("Or-Opt", or_opt_improve),
+        ("Reinsertion", reinsertion_improve),
         ("Exchange", exchange_improve),
     ]
     for r_idx in range(len(routes)):
@@ -635,8 +912,12 @@ def rvnd_optimize(routes: List[Route],
 
     # Fase 2: Perbaikan inter-rute (antar rute kendaraan)
     inter_ops = [
-        ("Relocate", relocate_inter),
-        ("Swap(1,1)", swap_inter),
+        ("Shift(1,0)", shift_1_0_inter),
+        ("Shift(2,0)", shift_2_0_inter),
+        ("Swap(1,1)", swap_1_1_inter),
+        ("Swap(2,1)", swap_2_1_inter),
+        ("Swap(2,2)", swap_2_2_inter),
+        ("Cross", cross_inter),
     ]
 
     improved = True
@@ -701,6 +982,11 @@ def local_search_optimize(routes: List[Route],
                 continue
             # 3. Coba Exchange
             r_copy, imp = exchange_improve(r_copy, dist_mtx, time_mtx, customers, depot, current_time)
+            if imp:
+                improved = True
+                continue
+            # 4. Coba Reinsertion
+            r_copy, imp = reinsertion_improve(r_copy, dist_mtx, time_mtx, customers, depot, current_time)
             if imp:
                 improved = True
                 continue
@@ -823,6 +1109,9 @@ def iterated_local_search(routes: List[Route],
     if random_seed is not None:
         random.seed(random_seed)
         np.random.seed(random_seed)
+    else:
+        random.seed(None)
+        np.random.seed(None)
         
     log = []
     
@@ -889,6 +1178,9 @@ def run_dvrptw_simulation(
     if random_seed is not None:
         random.seed(random_seed)
         np.random.seed(random_seed)
+    else:
+        random.seed(None)
+        np.random.seed(None)
 
     # Pisahkan pelanggan berdasarkan tipe: statis (diketahui sejak awal) vs dinamis
     static_ids = [c.id for c in customers.values() if not c.is_dynamic]

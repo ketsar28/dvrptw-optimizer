@@ -444,12 +444,14 @@ hr {
 }
 .cover-footer {
     font-size: 14px;
-    color: #64748B !important;
+    color: #ffffff !important;
     margin-top: 28px;
+    font-family: 'JetBrains Mono';
+    opacity: 0.7;
 }
 
 </style>
-""";
+"""
 
 # Spanduk utama yang muncul di setiap halaman dashboard
 HERO_BANNER = """
@@ -496,7 +498,7 @@ COVER_PAGE = """
             <span class="cover-algo-tag" style="color: #93C5FD !important;">Cheapest Insertion</span>
             <span class="cover-algo-tag" style="color: #93C5FD !important;">RVND Local Search</span>
         </div>
-        <div class="cover-footer" style="color: #64748B !important;">DVRPTW Optimizer Dashboard · 2026</div>
+        <div class="cover-footer">DVRPTW Optimizer Dashboard · 2026</div>
     </div>
 </div>
 """

@@ -74,6 +74,14 @@ def resize_matrix(old_df, new_size):
     )
 
 def save_session_cache():
+    # Reset simulation results when data changes
+    if "sim_result" in st.session_state:
+        st.session_state.sim_result = None
+    if "sim_unopt_result" in st.session_state:
+        st.session_state.sim_unopt_result = None
+    if "sim_opt_result" in st.session_state:
+        st.session_state.sim_opt_result = None
+
     cache_data = {}
     for k in ["n_cust", "n_static", "n_dynamic", "input_mode", "export_filename", "depot_open", "depot_close", "capacity", "speed", "max_vehicles"]:
         if k in st.session_state:
@@ -214,15 +222,34 @@ _defaults = {
     "sim_result": None,
     "sim_unopt_result": None,
     "sim_opt_result": None,
+    "persist_do_rvnd": True,
+    "persist_use_fixed_seed": True,
+    "persist_seed_val": 42,
     "entered_dashboard": False,  # kontrol apakah sudah melewati cover page
 }
 for k, v in _defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
+
 if "cache_loaded" not in st.session_state:
     load_session_cache()
     st.session_state.cache_loaded = True
+
+
+def reset_sim_results():
+    """Reset data simulasi di session state ketika parameter optimasi atau seed diubah."""
+    st.session_state.sim_result = None
+    st.session_state.sim_unopt_result = None
+    st.session_state.sim_opt_result = None
+    # Sinkronisasi ke variabel persisten
+    if "do_rvnd" in st.session_state:
+        st.session_state.persist_do_rvnd = st.session_state.do_rvnd
+    if "use_fixed_seed" in st.session_state:
+        st.session_state.persist_use_fixed_seed = st.session_state.use_fixed_seed
+    if "seed_val" in st.session_state:
+        st.session_state.persist_seed_val = st.session_state.seed_val
+
 
 
 # ═══════════════════════════════════════════════════
@@ -898,6 +925,15 @@ elif menu == "Konfigurasi Armada":
 # ═══════════════════════════════════════════════════
 elif menu == "Simulasi DVRPTW":
     st.markdown(HERO_BANNER, unsafe_allow_html=True)
+
+    # ─── Sinkronisasi Widget dengan Variabel Persisten ───
+    if "do_rvnd" not in st.session_state:
+        st.session_state.do_rvnd = st.session_state.persist_do_rvnd
+    if "use_fixed_seed" not in st.session_state:
+        st.session_state.use_fixed_seed = st.session_state.persist_use_fixed_seed
+    if "seed_val" not in st.session_state:
+        st.session_state.seed_val = st.session_state.persist_seed_val
+
     cdf = st.session_state.cust_df
     dmx = st.session_state.dist_mx
     tmx = st.session_state.time_mx
@@ -983,31 +1019,32 @@ elif menu == "Simulasi DVRPTW":
         col_opt1, col_opt2 = st.columns(2, gap="large")
         with col_opt1:
             st.markdown("#### Metode Perbaikan Rute")
-            do_rvnd = st.toggle(
+            st.toggle(
                 "Terapkan Optimasi RVND",
-                value=True,
+                key="do_rvnd",
+                on_change=reset_sim_results,
                 help="Mengaktifkan optimasi lokal berlapis dengan 5 operator neighborhood untuk memperpendek total jarak tempuh."
             )
             st.caption("RVND bertugas melakukan pencarian lokal (local search) intra-route dan inter-route secara intensif.")
             
         with col_opt2:
             st.markdown("#### Konsistensi Hasil (Reproduksibilitas)")
-            use_fixed_seed = st.toggle(
+            st.toggle(
                 "Kunci Acakan (Fixed Seed)",
-                value=True,
+                key="use_fixed_seed",
+                on_change=reset_sim_results,
                 help="Mengunci acakan algoritma agar hasil rute selalu konsisten ketika dijalankan berulang kali."
             )
-            if use_fixed_seed:
-                seed_val = st.number_input(
+            if st.session_state.use_fixed_seed:
+                st.number_input(
                     "Nilai Seed (Acuan Acakan)",
                     min_value=0, max_value=999999,
-                    value=42,
+                    key="seed_val",
+                    on_change=reset_sim_results,
                     help="Gunakan angka bulat acak mana saja. Jika angkanya sama, hasil rute akan selalu sama."
                 )
-            else:
-                seed_val = 42
-        
-        selected_seed = int(seed_val) if use_fixed_seed else None
+            
+        selected_seed = int(st.session_state.persist_seed_val) if st.session_state.persist_use_fixed_seed else None
 
         if st.button("Jalankan Simulasi DVRPTW", type="primary", use_container_width=True):
             with st.spinner("Memproses simulasi distribusi dinamis..."):
@@ -1026,7 +1063,7 @@ elif menu == "Simulasi DVRPTW":
                 
             st.session_state.sim_unopt_result = res_unopt
             st.session_state.sim_opt_result = res_opt
-            st.session_state.sim_result = res_opt if do_rvnd else res_unopt
+            st.session_state.sim_result = res_opt if st.session_state.persist_do_rvnd else res_unopt
             st.session_state.sim_el = el
             st.session_state.sim_c = custs
             st.session_state.sim_d = dist
@@ -1432,16 +1469,21 @@ elif menu == "Analisis Hasil":
         # ═══ TAB 3: SEBELUM VS SETELAH OPTIMASI (RVND) ═══
         with t_rvnd:
             if st.session_state.sim_unopt_result is None or st.session_state.sim_opt_result is None:
+                selected_seed = int(st.session_state.persist_seed_val) if st.session_state.persist_use_fixed_seed else None
                 with st.spinner("Menghitung data perbandingan..."):
                     st.session_state.sim_unopt_result = run_dvrptw_simulation(
-                        custs, dist, tmtx, depot_obj, time_step=0.05, apply_rvnd=False
+                        custs, dist, tmtx, depot_obj, time_step=0.05, apply_rvnd=False, random_seed=selected_seed
                     )
                     st.session_state.sim_opt_result = run_dvrptw_simulation(
-                        custs, dist, tmtx, depot_obj, time_step=0.05, apply_rvnd=True
+                        custs, dist, tmtx, depot_obj, time_step=0.05, apply_rvnd=True, random_seed=selected_seed
                     )
             
             res_un = st.session_state.sim_unopt_result
-            res_op = st.session_state.sim_opt_result
+            if not st.session_state.persist_do_rvnd:
+                res_op = res_un
+                st.warning("⚠️ Optimasi RVND dinonaktifkan pada menu **Simulasi DVRPTW**. Hasil Sebelum dan Setelah Optimasi adalah identik (tanpa RVND).")
+            else:
+                res_op = st.session_state.sim_opt_result
             m_un = res_un["metrics"]
             m_op = res_op["metrics"]
 
@@ -1455,13 +1497,20 @@ elif menu == "Analisis Hasil":
                 st.markdown("""
                 **Iterated Local Search (ILS)** dikombinasikan dengan **RVND (Randomized Variable Neighborhood Descent)** bekerja dengan alur bertahap:
                 
-                1. **Local Search (Intra-Route)**: Menjalankan optimasi deterministik 2-Opt, Or-Opt, dan Exchange pada setiap rute.
-                2. **RVND (Inter & Intra-Route)**: Mengacak penggunaan 5 operator neighborhood secara acak:
+                1. **Local Search (Intra-Route - $NL'$ )**: Menjalankan optimasi deterministik **2-Opt**, **Or-Opt**, **Reinsertion**, dan **Exchange** pada setiap rute.
                    - **2-Opt**: Membalik urutan segmen rute untuk menghilangkan persilangan jalur.
-                   - **Or-Opt**: Memindahkan 1-2 pelanggan berurutan ke posisi lain dalam satu rute.
-                   - **Exchange**: Menukar posisi dua pelanggan dalam satu rute.
-                   - **Relocate**: Memindahkan satu pelanggan dari satu rute ke rute lain.
-                   - **Swap(1,1)**: Menukar satu pelanggan antar dua rute berbeda.
+                   - **Or-Opt**: Memindahkan segmen 2 node pelanggan berurutan ke posisi lain dalam satu rute.
+                   - **Reinsertion**: Memindahkan 1 pelanggan uncommitted ke posisi lain dalam satu rute.
+                   - **Exchange**: Menukar posisi dua node pelanggan uncommitted dalam satu rute.
+                2. **RVND (Inter-Route - $NL$ & Intra-Route - $NL'$ )**: Mengacak penggunaan 10 operator neighborhood secara dinamis untuk perbaikan solusi:
+                   - **Intra-Route ($NL'$)**: **2-Opt**, **Or-Opt**, **Reinsertion**, dan **Exchange**.
+                   - **Inter-Route ($NL$)**:
+                     - **Shift(1,0)**: Memindahkan 1 node pelanggan uncommitted dari satu rute ke rute lain.
+                     - **Shift(2,0)**: Memindahkan segmen 2 node pelanggan berurutan dari satu rute ke rute lain.
+                     - **Swap(1,1)**: Menukar 1 node pelanggan uncommitted antar dua rute berbeda.
+                     - **Swap(2,1)**: Menukar segmen 2 node pelanggan berurutan di rute A dengan 1 node pelanggan di rute B.
+                     - **Swap(2,2)**: Menukar segmen 2 node pelanggan berurutan di rute A dengan segmen 2 node pelanggan berurutan di rute B.
+                     - **Cross**: Menukar bagian ekor (segmen dari posisi potong ke depot akhir) antar dua rute berbeda.
                 3. **Perturbasi (Perturbation)**: Melakukan pengacakan layak terkontrol pada rute untuk menghindari jebakan optimum lokal (*local optima*), kemudian melakukan siklus pencarian lokal kembali.
                 
                 Proses ini menjamin rute yang dihasilkan jauh lebih efisien dengan tetap menjaga batas non-preemption.

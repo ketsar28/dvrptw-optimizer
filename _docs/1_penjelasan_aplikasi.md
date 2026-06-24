@@ -10,7 +10,7 @@ Aplikasi ini dirancang sebagai alat bantu keputusan (*Decision Support Tool*) un
 
 Dashboard ini menghubungkan tiga komponen utama:
 
-1. **Antarmuka Input Data**: Memungkinkan pengguna mengunggah berkas konfigurasi VRP (`.json`) atau mengedit tabel pelanggan statis, pelanggan dinamis, serta matriks jarak dan waktu tempuh secara langsung (interaktif).
+1. **Antarmuka Input Data**: Memungkinkan untuk mengunggah berkas konfigurasi VRP (`.json`) atau mengedit tabel pelanggan statis, pelanggan dinamis, serta matriks jarak dan waktu tempuh secara langsung (interaktif).
 2. **Mesin Solver DVRPTW (`solver.py`)**: Menjalankan simulasi berbasis waktu (*discrete event simulation*) untuk menyisipkan pesanan baru secara real-time dan mengoptimalkan rute menggunakan algoritma ILS + RVND.
 3. **Visualisasi & Analisis**: Menggunakan pustaka **Plotly** untuk menggambar peta rute interaktif dalam koordinat 2D (dihitung menggunakan metode *Multi-Dimensional Scaling* / MDS berdasarkan matriks jarak nyata) serta grafik batang analisis efisiensi.
 
@@ -27,7 +27,7 @@ Aplikasi dibagi menjadi 5 menu navigasi utama di bilah sisi (*sidebar*):
 
 ### B. Data Pelanggan (Customer Data)
 
-* **Fungsi**: Gerbang masuk data. Pengguna dapat:
+* **Fungsi**: Gerbang masuk data. Seperti :
   - Mengunggah berkas JSON dataset.
   - Menentukan jumlah pelanggan statis dan dinamis.
   - Mengedit parameter pelanggan: ID, Demand (kg), Service Time (detik/jam), dan Reveal Time (khusus pelanggan dinamis).
@@ -39,7 +39,7 @@ Aplikasi dibagi menjadi 5 menu navigasi utama di bilah sisi (*sidebar*):
 
 ### D. Simulasi DVRPTW (Simulation Engine)
 
-* **Fungsi**: Pusat eksekusi simulasi dinamis. Pengguna dapat:
+* **Fungsi**: Pusat eksekusi simulasi dinamis. Seperti :
   - Memilih apakah ingin menerapkan optimasi RVND atau tidak (untuk melihat perbandingan efisiensi).
   - Mengunci acakan algoritma (*Fixed Seed*) agar hasil rute selalu konsisten saat diuji ulang.
   - Menekan tombol **"Jalankan Simulasi DVRPTW"** untuk memutar jam virtual.

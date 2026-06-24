@@ -1,6 +1,6 @@
 # Panduan Bagian Kode untuk Laporan Skripsi
 
-Dokumen ini memuat **4 bagian kode program utama** dari file **[solver.py](file:///d:/PORTFOLIO/NUR/NUHA/solver.py)** yang sangat penting secara teoritis dan teknis untuk dimasukkan ke dalam laporan skripsi (baik di Bab IV Pembahasan maupun bagian Lampiran Kode). Setiap kode dilengkapi dengan penjelasan fungsi akademisnya.
+Dokumen ini memuat **4 bagian kode program utama** dari file `solver.py` yang sangat penting secara teoritis dan teknis untuk dimasukkan ke dalam laporan skripsi (baik di Bab IV Pembahasan maupun bagian Lampiran Kode). Setiap kode dilengkapi dengan penjelasan fungsi akademisnya.
 
 ---
 
@@ -142,8 +142,8 @@ def cheapest_insertion(new_customer_id: int,
 ---
 
 ## Bagian 3: Pencarian Lokal (Randomized Variable Neighborhood Descent - RVND)
-*   **Lokasi File**: `solver.py` (Baris 602 - 669)
-*   **Fungsi Akademis**: Mesin optimasi lokal untuk memperbaiki rute. Algoritma mengevaluasi 5 jenis struktur ketetangan (*neighborhood structures*) secara acak: 3 operator di dalam rute (2-Opt, Or-Opt, Exchange) dan 2 operator antar rute (Relocate, Swap). Perbaikan dilakukan berulang kali sampai tidak ada perbaikan jarak yang bisa dicapai di semua tetangga (*local optimum*).
+*   **Lokasi File**: `solver.py` (Baris 878 - 950)
+*   **Fungsi Akademis**: Mesin optimasi lokal untuk memperbaiki rute secara komprehensif. Algoritma mengevaluasi **10 jenis struktur ketetangan** (*neighborhood structures*): 4 operator di dalam rute / intra-route ($NL'$) yaitu **2-Opt**, **Or-Opt**, **Reinsertion**, dan **Exchange**; serta 6 operator antar rute / inter-route ($NL$) yaitu **Shift(1,0)**, **Shift(2,0)**, **Swap(1,1)**, **Swap(2,1)**, **Swap(2,2)**, dan **Cross**. Perbaikan dilakukan secara acak (RVND) dan diulang secara dinamis sampai mencapai optimum lokal (*local optimum*).
 
 ### Potongan Kode:
 ```python
@@ -156,10 +156,11 @@ def rvnd_optimize(routes: List[Route],
     routes = copy.deepcopy(routes)
     log = []
 
-    # Operator intra-rute (dalam rute yang sama)
+    # Fase 1: Perbaikan intra-rute (dalam setiap rute - NL')
     intra_ops = [
         ("2-Opt", two_opt_improve),
         ("Or-Opt", or_opt_improve),
+        ("Reinsertion", reinsertion_improve),
         ("Exchange", exchange_improve),
     ]
     for r_idx in range(len(routes)):
@@ -167,11 +168,20 @@ def rvnd_optimize(routes: List[Route],
             routes[r_idx], imp = op(
                 routes[r_idx], dist_mtx, time_mtx, customers, depot, current_time
             )
+            if imp:
+                log.append({
+                    "operator": name, "type": "intra",
+                    "route": r_idx + 1, "status": "diperbaiki"
+                })
 
-    # Operator inter-rute (antar dua rute berbeda)
+    # Fase 2: Perbaikan inter-rute (antar rute kendaraan - NL)
     inter_ops = [
-        ("Relocate", relocate_inter),
-        ("Swap(1,1)", swap_inter),
+        ("Shift(1,0)", shift_1_0_inter),
+        ("Shift(2,0)", shift_2_0_inter),
+        ("Swap(1,1)", swap_1_1_inter),
+        ("Swap(2,1)", swap_2_1_inter),
+        ("Swap(2,2)", swap_2_2_inter),
+        ("Cross", cross_inter),
     ]
 
     improved = True
@@ -186,14 +196,19 @@ def rvnd_optimize(routes: List[Route],
                 log.append({"operator": name, "type": "inter", "status": "diperbaiki"})
                 improved = True
 
-                # Optimasi ulang bagian intra-rute setelah struktur inter berubah
+                # Setelah inter-route berubah, coba optimasi ulang intra-route
                 for r_idx in range(len(routes)):
                     for iname, iop in intra_ops:
                         routes[r_idx], iimp = iop(
                             routes[r_idx], dist_mtx, time_mtx,
                             customers, depot, current_time
                         )
-                break 
+                        if iimp:
+                            log.append({
+                                "operator": iname, "type": "intra",
+                                "route": r_idx + 1, "status": "diperbaiki"
+                            })
+                break  # ulangi loop inter dari awal setelah perbaikan
 
     return routes, log
 ```
