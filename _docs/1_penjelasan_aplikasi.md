@@ -54,7 +54,7 @@ Aplikasi dibagi menjadi 5 menu navigasi utama di bilah sisi (*sidebar*):
 
 ---
 
-## ⚙️ 3. Alur Kerja Aplikasi (Workflow)
+## 3. Alur Kerja Aplikasi (Workflow)
 
 Di balik layar, berikut adalah urutan eksekusi aplikasi saat tombol simulasi ditekan:
 
