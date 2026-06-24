@@ -75,7 +75,7 @@ def sequential_insertion(customer_ids: List[int],
 
 ---
 
-## ⏱Bagian 2: Penyisipan Dinamis & Aturan Non-Preemption (Cheapest Insertion)
+## Bagian 2: Penyisipan Dinamis & Aturan Non-Preemption (Cheapest Insertion)
 *   **Lokasi File**: `solver.py` (Baris 269 - 340)
 *   **Fungsi Akademis**: Algoritma dinamis untuk menangani pesanan mendadak (pelanggan dinamis) yang muncul pada `current_time`. Algoritma menghitung batas titik mana saja yang sudah dikunjungi atau dilewati kendaraan (*committed boundary*), lalu menyisipkan pesanan baru di sisa jalur yang belum ditempuh agar kendaraan tidak perlu berbalik arah (*non-preemption*).
 
