@@ -1,10 +1,10 @@
 # Panduan Penjelasan Aplikasi Dashboard DVRPTW
 
-Dokumen ini menjelaskan rancangan, fitur, dan cara pengoperasian aplikasi **Dashboard DVRPTW (Dynamic Vehicle Routing Problem with Time Windows)** yang telah dibangun menggunakan Streamlit. Dokumen ini dapat digunakan oleh Nuha sebagai bahan penyusunan Bab IV (Hasil dan Pembahasan) atau panduan demonstrasi aplikasi di depan dosen penguji.
+Dokumen ini menjelaskan rancangan, fitur, dan cara pengoperasian aplikasi **Dashboard DVRPTW (Dynamic Vehicle Routing Problem with Time Windows)** yang telah dibangun menggunakan Streamlit. Dokumen ini berfungsi sebagai referensi penyusunan Bab IV (Hasil dan Pembahasan) atau panduan demonstrasi aplikasi pada sidang tugas akhir.
 
 ---
 
-## 🖥️ 1. Gambaran Umum Sistem
+## 1. Gambaran Umum Sistem
 
 Aplikasi ini dirancang sebagai alat bantu keputusan (*Decision Support Tool*) untuk mengoptimalkan rute pengiriman barang secara dinamis. Antarmuka aplikasi dibuat menggunakan **Streamlit** (Python) dengan tema visual **Dark Navy Blue Premium** untuk memberikan kesan akademis sekaligus modern dan profesional.
 
@@ -16,16 +16,16 @@ Dashboard ini menghubungkan tiga komponen utama:
 
 ---
 
-## 📂 2. Struktur Menu Aplikasi
+## 2. Struktur Menu Aplikasi
 
 Aplikasi dibagi menjadi 5 menu navigasi utama di bilah sisi (*sidebar*):
 
-### A. 🏠 Beranda (Home)
+### A. Beranda (Home)
 
 * **Fungsi**: Halaman pengantar yang menjelaskan latar belakang masalah DVRPTW, batasan model (kapasitas kendaraan 2500 kg, non-preemption, dll.), serta ringkasan metode optimasi yang digunakan (Sequential Insertion, Cheapest Insertion, dan Metaheuristik ILS + RVND).
 * **Tampilan**: Dilengkapi dengan *Hero Banner* akademis Universitas Negeri Malang.
 
-### B. 👥 Data Pelanggan (Customer Data)
+### B. Data Pelanggan (Customer Data)
 
 * **Fungsi**: Gerbang masuk data. Pengguna dapat:
   - Mengunggah berkas JSON dataset.
@@ -33,11 +33,11 @@ Aplikasi dibagi menjadi 5 menu navigasi utama di bilah sisi (*sidebar*):
   - Mengedit parameter pelanggan: ID, Demand (kg), Service Time (detik/jam), dan Reveal Time (khusus pelanggan dinamis).
   - Mengedit matriks jarak (km) dan matriks waktu tempuh (jam) antar lokasi melalui tabel interaktif.
 
-### C. 🚚 Konfigurasi Armada (Fleet Configuration)
+### C. Konfigurasi Armada (Fleet Configuration)
 
 * **Fungsi**: Mengatur kapasitas maksimal tiap kendaraan (default: 2500 kg), kecepatan rata-rata (default: 60 km/jam), jumlah armada kendaraan yang tersedia (default: 2), serta jam operasional depot (jam buka $e_0 = 4.0$ s.d jam tutup $l_0 = 7.0$).
 
-### D. ⚙️ Simulasi DVRPTW (Simulation Engine)
+### D. Simulasi DVRPTW (Simulation Engine)
 
 * **Fungsi**: Pusat eksekusi simulasi dinamis. Pengguna dapat:
   - Memilih apakah ingin menerapkan optimasi RVND atau tidak (untuk melihat perbandingan efisiensi).
@@ -45,7 +45,7 @@ Aplikasi dibagi menjadi 5 menu navigasi utama di bilah sisi (*sidebar*):
   - Menekan tombol **"Jalankan Simulasi DVRPTW"** untuk memutar jam virtual.
   - Melihat riwayat log langkah-demi-langkah (kapan pesanan dinamis masuk, di mana ia disisipkan, dan bagaimana rute dioptimalkan ulang).
 
-### E. 📊 Analisis Hasil (Results Analysis)
+### E. Analisis Hasil (Results Analysis)
 
 * **Fungsi**: Halaman perbandingan performa. Halaman ini menyajikan:
   - Metrik performa akhir: Total Jarak Tempuh (km), Waktu Operasional total (jam/menit), dan Jumlah Kendaraan Terpakai.

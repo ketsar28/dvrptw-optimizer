@@ -53,7 +53,7 @@ Fokus utama aplikasi ini adalah menghasilkan rute logistik dinamis yang **layak 
 - **🎯 Academic Reproducibility (Fixed Seed)**: Dilengkapi dengan fitur **"Kunci Acakan (Fixed Seed)"** menggunakan parameter acuan acak matematis interaktif untuk menghasilkan hasil optimasi rute metaheuristik ILS & RVND yang konsisten 100% saat dijalankan ulang.
 - **🎨 Ultra-Premium Seamless UI & Dark Navigation Sidebar**:
   - **Seamless Charts**: Seluruh kanvas visualisasi grafik memiliki latar belakang transparan (`rgba(0,0,0,0)`) yang menyatu indah langsung dengan halaman utama.
-  - **Dark Navy Sidebar**: Navigasi sidebar gelap berhiaskan glowing badge inisial "N" (Nuha/Network) mewah, menu interaktif berikon emoji (`🏠`, `👥`, `🚚`, `⚙️`, `📊`), tombol sekunder subtle terintegrasi, dan kartu identitas formal formal yang sangat informatif.
+  - **Dark Navy Sidebar**: Navigasi sidebar gelap berhiaskan glowing badge inisial "N" (Network/Navigation) mewah, menu interaktif berikon emoji (`🏠`, `👥`, `🚚`, `⚙️`, `📊`), tombol sekunder subtle terintegrasi, dan kartu identitas formal formal yang sangat informatif.
 - **🗺️ MDS Spasial & High-Contrast Segment Pills**: Memproyeksikan matriks jarak multi-dimensi menjadi peta jaringan koordinat 2D (MDS) rute dinamis dengan label jarak antar segmen rute berupa **mini-badge/pill berlatar belakang putih solid (`#FFFFFF`) dan border biru** agar tidak tertutup garis rute atau panah arah.
 - **⚡ Sebelum vs Setelah Optimasi (RVND)**: Panel khusus yang membandingkan performa rute heuristik dasar vs rute yang telah disempurnakan oleh RVND secara real-time, lengkap dengan persentase efisiensi jarak dan waktu kerja secara interaktif.
 - **🕒 Automatic HMS Time Formatter**: Mengonversi representasi matematis jam desimal (seperti `0.9005 jam`) menjadi waktu operasional lapangan yang intuitif (`54 menit 2 detik`) di seluruh tabel rute dan kedatangan.
@@ -67,7 +67,7 @@ Fokus utama aplikasi ini adalah menghasilkan rute logistik dinamis yang **layak 
 ### 1. Clone / Unduh Repositori
 
 ```bash
-git clone https://github.com/username-anda/dvrptw-optimizer.git
+git clone https://github.com/username/dvrptw-optimizer.git
 cd dvrptw-optimizer
 ```
 
@@ -160,4 +160,4 @@ Aplikasi akan berjalan di `http://localhost:8501`
 
 ---
 
-*© 2026 — Nuha Bahiyya Al Faridha (220312609348) · Program Studi Matematika - Universitas Negeri Malang*
+*© 2026 · Departemen Matematika - Universitas Negeri Malang*

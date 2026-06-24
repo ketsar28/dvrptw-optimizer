@@ -1,10 +1,10 @@
 # Panduan Bagian Kode untuk Laporan Skripsi
 
-Dokumen ini memuat **4 bagian kode program utama** dari file **[solver.py](file:///d:/PORTFOLIO/NUR/NUHA/solver.py)** yang sangat penting secara teoritis dan teknis untuk dimasukkan ke dalam laporan skripsi Nuha (baik di Bab IV Pembahasan maupun bagian Lampiran Kode). Setiap kode dilengkapi dengan penjelasan fungsi akademisnya.
+Dokumen ini memuat **4 bagian kode program utama** dari file **[solver.py](file:///d:/PORTFOLIO/NUR/NUHA/solver.py)** yang sangat penting secara teoritis dan teknis untuk dimasukkan ke dalam laporan skripsi (baik di Bab IV Pembahasan maupun bagian Lampiran Kode). Setiap kode dilengkapi dengan penjelasan fungsi akademisnya.
 
 ---
 
-## 🛠️ Bagian 1: Inisialisasi Rute Awal (Solomon's Sequential Insertion)
+## Bagian 1: Inisialisasi Rute Awal (Solomon's Sequential Insertion)
 *   **Lokasi File**: `solver.py` (Baris 185 - 262)
 *   **Fungsi Akademis**: Membangun solusi rute awal dari kumpulan pelanggan statis (pesanan yang sudah masuk sebelum operasional berjalan). Algoritma mencari pelanggan terjauh dari depot sebagai titik awal (*seed*), lalu menyisipkan pelanggan lain secara bertahap pada posisi dengan biaya tambahan jarak terkecil (*cheapest cost*).
 
@@ -75,7 +75,7 @@ def sequential_insertion(customer_ids: List[int],
 
 ---
 
-## ⏱️ Bagian 2: Penyisipan Dinamis & Aturan Non-Preemption (Cheapest Insertion)
+## ⏱Bagian 2: Penyisipan Dinamis & Aturan Non-Preemption (Cheapest Insertion)
 *   **Lokasi File**: `solver.py` (Baris 269 - 340)
 *   **Fungsi Akademis**: Algoritma dinamis untuk menangani pesanan mendadak (pelanggan dinamis) yang muncul pada `current_time`. Algoritma menghitung batas titik mana saja yang sudah dikunjungi atau dilewati kendaraan (*committed boundary*), lalu menyisipkan pesanan baru di sisa jalur yang belum ditempuh agar kendaraan tidak perlu berbalik arah (*non-preemption*).
 
@@ -141,7 +141,7 @@ def cheapest_insertion(new_customer_id: int,
 
 ---
 
-## 🔄 Bagian 3: Pencarian Lokal (Randomized Variable Neighborhood Descent - RVND)
+## Bagian 3: Pencarian Lokal (Randomized Variable Neighborhood Descent - RVND)
 *   **Lokasi File**: `solver.py` (Baris 602 - 669)
 *   **Fungsi Akademis**: Mesin optimasi lokal untuk memperbaiki rute. Algoritma mengevaluasi 5 jenis struktur ketetangan (*neighborhood structures*) secara acak: 3 operator di dalam rute (2-Opt, Or-Opt, Exchange) dan 2 operator antar rute (Relocate, Swap). Perbaikan dilakukan berulang kali sampai tidak ada perbaikan jarak yang bisa dicapai di semua tetangga (*local optimum*).
 
@@ -200,7 +200,7 @@ def rvnd_optimize(routes: List[Route],
 
 ---
 
-## 🌀 Bagian 4: Metaheuristik Iterated Local Search (ILS) & Perturbasi
+## Bagian 4: Metaheuristik Iterated Local Search (ILS) & Perturbasi
 *   **Lokasi File**: `solver.py` (Baris 805 - 864)
 *   **Fungsi Akademis**: Algoritma kendali tingkat tinggi (*metaheuristic*) untuk mencegah solusi terjebak pada optimum lokal (*local optima*). ILS melakukan pencarian lokal intensif, kemudian secara sengaja merusak/mengacak rute secara layak (*perturbation*), dan mengoptimalkannya kembali untuk menemukan rute yang jauh lebih pendek.
 

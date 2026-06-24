@@ -32,10 +32,12 @@ section[data-testid="stSidebar"] h2,
 section[data-testid="stSidebar"] h3 { color: #60A5FA !important; }
 
 /* ── Menu Navigasi Sidebar: Tanpa Ikon, Bersih dan Modern ── */
+div[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"],
 div[data-testid="stSidebar"] div[role="radiogroup"] {
-    gap: 6px !important;
+    gap: 8px !important;
     padding: 10px 0;
 }
+div[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label,
 div[data-testid="stSidebar"] div[role="radiogroup"] label {
     background: rgba(30,41,59,0.7) !important;
     padding: 12px 18px !important;
@@ -51,7 +53,14 @@ div[data-testid="stSidebar"] div[role="radiogroup"] label {
     align-items: center !important;
 }
 
-/* Sembunyikan SEMUA jenis penanda/bulatan/ikon bawaan dari radio button Streamlit */
+/* Sembunyikan lingkaran/bulatan/glyph radio button Streamlit */
+div[data-testid="stSidebar"] [data-testid="stRadio"] label [data-baseweb="radio"],
+div[data-testid="stSidebar"] [data-testid="stRadio"] label [data-testid="stWidgetCustomComponentGlyph"],
+div[data-testid="stSidebar"] [data-testid="stRadio"] label input[type="radio"],
+div[data-testid="stSidebar"] [data-testid="stRadio"] label span[class*="Radio"],
+div[data-testid="stSidebar"] [data-testid="stRadio"] label [class*="radio"],
+div[data-testid="stSidebar"] [data-testid="stRadio"] label div[dir="ltr"],
+div[data-testid="stSidebar"] [data-testid="stRadio"] label svg,
 div[data-testid="stSidebar"] div[role="radiogroup"] label [data-testid="stWidgetCustomComponentGlyph"],
 div[data-testid="stSidebar"] div[role="radiogroup"] label input[type="radio"],
 div[data-testid="stSidebar"] div[role="radiogroup"] label span[class*="Radio"],
@@ -69,12 +78,14 @@ div[data-testid="stSidebar"] div[role="radiogroup"] label svg {
 }
 
 /* Gaya teks label menu - Diposisikan di Tengah */
+div[data-testid="stSidebar"] [data-testid="stRadio"] label div[data-testid="stMarkdownContainer"],
 div[data-testid="stSidebar"] div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] {
     margin-left: 0 !important;
     padding-left: 0 !important;
     text-align: center !important;
     width: 100% !important;
 }
+div[data-testid="stSidebar"] [data-testid="stRadio"] label p,
 div[data-testid="stSidebar"] div[role="radiogroup"] label p {
     font-size: 14px !important;
     font-weight: 500 !important;
@@ -85,42 +96,152 @@ div[data-testid="stSidebar"] div[role="radiogroup"] label p {
 }
 
 /* Efek hover pada menu */
+div[data-testid="stSidebar"] [data-testid="stRadio"] label:hover,
 div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
     background: rgba(59,130,246,0.15) !important;
     border-color: rgba(96,165,250,0.3) !important;
     transform: translateX(4px);
 }
+div[data-testid="stSidebar"] [data-testid="stRadio"] label:hover p,
 div[data-testid="stSidebar"] div[role="radiogroup"] label:hover p {
     color: #60A5FA !important;
 }
 
 /* Menu yang sedang aktif/terpilih — BIRU SOLID PREMIUM */
+div[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked),
+div[data-testid="stSidebar"] [data-testid="stRadio"] [data-checked="true"],
 div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked),
 div[data-testid="stSidebar"] div[role="radiogroup"] [data-checked="true"] {
     background: linear-gradient(90deg, #1D4ED8 0%, #2563EB 100%) !important;
     border-color: #3B82F6 !important;
     box-shadow: 0 4px 12px rgba(37,99,235,0.3) !important;
 }
+div[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) p,
+div[data-testid="stSidebar"] [data-testid="stRadio"] [data-checked="true"] p,
 div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p,
 div[data-testid="stSidebar"] div[role="radiogroup"] [data-checked="true"] p {
     color: #FFFFFF !important;
     font-weight: 600 !important;
 }
 
-/* ── Tombol Utama: Gradien Biru ── */
-div.stButton > button[kind="primary"], div.stButton > button {
-    background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 50%, #3B82F6 100%);
-    color: white !important; font-weight: 600; font-size: 14px;
-    border-radius: 10px; padding: 10px 24px;
-    border: none; transition: all 0.3s ease;
-    box-shadow: 0 4px 14px rgba(37,99,235,0.35);
-    letter-spacing: 0.2px;
+/* ── Tombol Utama (Primary & Secondary): Estetika Elemen Tombol Nyata ── */
+/* ── Tombol Utama (Primary) - Main Body (Default) ── */
+div.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    border-radius: 8px !important;
+    padding: 10px 24px !important;
+    border: 1px solid #1D4ED8 !important;
+    transition: all 0.25s ease !important;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1) !important;
+    letter-spacing: 0.2px !important;
+    width: 100% !important;
 }
-div.stButton > button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(37,99,235,0.45);
+
+/* ── Tombol Biasa (Secondary) - Main Body (Default) ── */
+div.stButton > button:not([kind="primary"]) {
+    background: #FFFFFF !important;
+    color: #475569 !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
+    border-radius: 8px !important;
+    padding: 10px 24px !important;
+    border: 1px solid #E2E8F0 !important;
+    transition: all 0.25s ease !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    letter-spacing: 0.2px !important;
+    width: 100% !important;
 }
-div.stButton > button:active { transform: translateY(0); }
+
+/* Hover - Main Body */
+div.stButton > button:not([kind="primary"]):hover {
+    background: #F8FAFC !important;
+    border-color: #CBD5E1 !important;
+    color: #1E293B !important;
+    transform: translateY(-1.5px) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
+}
+
+div.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%) !important;
+    color: #FFFFFF !important;
+    transform: translateY(-1.5px) !important;
+    box-shadow: 0 6px 12px -1px rgba(37, 99, 235, 0.3) !important;
+}
+
+div.stButton > button:active {
+    transform: translateY(0) !important;
+}
+
+
+/* ── OVERRIDE KHUSUS TOMBOL DI DALAM SIDEBAR (Dark Theme) ── */
+
+/* Tombol Menu Aktif (Primary) di Sidebar */
+section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    border: 1px solid #3B82F6 !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+}
+
+/* Tombol Menu Tidak Aktif (Secondary) di Sidebar */
+section[data-testid="stSidebar"] div.stButton > button:not([kind="primary"]) {
+    background: rgba(30, 41, 59, 0.4) !important;
+    color: #94A3B8 !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Hover Tombol di Sidebar */
+section[data-testid="stSidebar"] div.stButton > button:not([kind="primary"]):hover {
+    background: rgba(59, 130, 246, 0.15) !important;
+    border-color: rgba(96, 165, 250, 0.3) !important;
+    color: #60A5FA !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+}
+
+section[data-testid="stSidebar"] div.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%) !important;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45) !important;
+}
+
+
+/* ── Tombol Fungsional Khusus di Bagian Bawah Sidebar (Menggunakan Key dengan Spesifisitas Tinggi) ── */
+
+/* Kembali ke Cover Page */
+section[data-testid="stSidebar"] div.st-key-btn_back_to_cover div.stButton > button {
+    background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    border: 1px solid #475569 !important;
+    box-shadow: 0 4px 12px rgba(71, 85, 105, 0.3) !important;
+}
+
+section[data-testid="stSidebar"] div.st-key-btn_back_to_cover div.stButton > button:hover {
+    background: linear-gradient(135deg, #64748B 0%, #475569 100%) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 6px 16px rgba(71, 85, 105, 0.45) !important;
+    transform: translateY(-1.5px) !important;
+}
+
+/* Reset Semua Data */
+section[data-testid="stSidebar"] div.st-key-btn_reset_all_data div.stButton > button {
+    background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%) !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    border: 1px solid #DC2626 !important;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
+}
+
+section[data-testid="stSidebar"] div.st-key-btn_reset_all_data div.stButton > button:hover {
+    background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.45) !important;
+    transform: translateY(-1.5px) !important;
+}
 
 /* ── Kartu Metrik: Desain Premium ── */
 [data-testid="stMetric"] {
@@ -327,27 +448,6 @@ hr {
     margin-top: 28px;
 }
 
-/* ── Tombol khusus di Sidebar agar menyatu dengan gradien gelap ── */
-section[data-testid="stSidebar"] div.stButton > button {
-    background: rgba(30, 41, 59, 0.4) !important;
-    color: #94A3B8 !important;
-    border: 1px solid rgba(59, 130, 246, 0.15) !important;
-    box-shadow: none !important;
-    font-size: 13.5px !important;
-    font-weight: 500 !important;
-    border-radius: 8px !important;
-    padding: 8px 16px !important;
-    transition: all 0.25s ease !important;
-}
-section[data-testid="stSidebar"] div.stButton > button:hover {
-    background: rgba(59, 130, 246, 0.18) !important;
-    color: #60A5FA !important;
-    border-color: rgba(96, 165, 250, 0.35) !important;
-    transform: translateY(-1px);
-}
-section[data-testid="stSidebar"] div.stButton > button:active {
-    transform: translateY(0);
-}
 </style>
 """;
 
@@ -414,10 +514,6 @@ SIDEBAR_HEADER = """
     ">
         <span style="font-size: 24px; font-weight: 800; color: #FFFFFF !important; font-family: 'JetBrains Mono';">N</span>
     </div>
-    <div style="
-        font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
-        color: #93C5FD !important; margin-bottom: 2px;
-    ">Tugas Akhir · Nuha</div>
     <div style="font-size: 21px; font-weight: 800; color: #FFFFFF !important; letter-spacing: -0.5px;">
         DVRPTW Optimizer
     </div>

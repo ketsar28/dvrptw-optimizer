@@ -39,9 +39,43 @@ from theme import (
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_FILE = os.path.join(CURRENT_DIR, "_data", "active_session_cache.json")
 
+def make_json_serializable(obj):
+    if isinstance(obj, dict):
+        return {k: make_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [make_json_serializable(v) for v in obj]
+    elif isinstance(obj, (np.int64, np.int32, np.integer)):
+        return int(obj)
+    elif isinstance(obj, (np.float64, np.float32, np.floating)):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return make_json_serializable(obj.tolist())
+    elif isinstance(obj, pd.DataFrame):
+        return make_json_serializable(obj.to_dict(orient="records"))
+    else:
+        return obj
+
+def resize_matrix(old_df, new_size):
+    if old_df is None:
+        return pd.DataFrame(
+            np.zeros((new_size, new_size)),
+            columns=[str(i) for i in range(new_size)],
+            index=[str(i) for i in range(new_size)],
+        )
+    new_data = np.zeros((new_size, new_size))
+    old_size = old_df.shape[0]
+    copy_size = min(old_size, new_size)
+    if copy_size > 0:
+        new_data[:copy_size, :copy_size] = old_df.to_numpy()[:copy_size, :copy_size]
+    return pd.DataFrame(
+        new_data,
+        columns=[str(i) for i in range(new_size)],
+        index=[str(i) for i in range(new_size)],
+    )
+
 def save_session_cache():
     cache_data = {}
-    for k in ["n_cust", "depot_open", "depot_close", "capacity", "speed", "max_vehicles"]:
+    for k in ["n_cust", "n_static", "n_dynamic", "input_mode", "export_filename", "depot_open", "depot_close", "capacity", "speed", "max_vehicles"]:
         if k in st.session_state:
             cache_data[k] = st.session_state[k]
             
@@ -68,8 +102,9 @@ def save_session_cache():
 
     try:
         os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
+        clean_cache = make_json_serializable(cache_data)
         with open(CACHE_FILE, "w") as f:
-            _json.dump(cache_data, f, indent=4)
+            _json.dump(clean_cache, f, indent=4)
     except Exception as e:
         print(f"Error saving cache: {e}")
 
@@ -78,7 +113,7 @@ def load_session_cache():
         try:
             with open(CACHE_FILE, "r") as f:
                 cache_data = _json.load(f)
-            for k in ["n_cust", "depot_open", "depot_close", "capacity", "speed", "max_vehicles"]:
+            for k in ["n_cust", "n_static", "n_dynamic", "input_mode", "export_filename", "depot_open", "depot_close", "capacity", "speed", "max_vehicles"]:
                 if k in cache_data:
                     st.session_state[k] = cache_data[k]
             
@@ -162,7 +197,11 @@ st.markdown(BLUE_THEME_CSS, unsafe_allow_html=True)
 
 # ─── Inisialisasi Session State ───
 _defaults = {
-    "n_cust": 7,
+    "n_cust": 0,
+    "n_static": 0,
+    "n_dynamic": 0,
+    "input_mode": "📥 Import dari File JSON",
+    "export_filename": "data_skenario_kustom",
     "depot_open": 4.0,
     "depot_close": 7.0,
     "capacity": 2500,
@@ -181,7 +220,9 @@ for k, v in _defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-load_session_cache()
+if "cache_loaded" not in st.session_state:
+    load_session_cache()
+    st.session_state.cache_loaded = True
 
 
 # ═══════════════════════════════════════════════════
@@ -202,7 +243,7 @@ if not st.session_state.entered_dashboard:
     # Tombol masuk dashboard — posisi tengah
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        if st.button("Masuk ke Dashboard", use_container_width=True):
+        if st.button("Masuk ke Dashboard", type="primary", use_container_width=True):
             st.session_state.entered_dashboard = True
             st.rerun()
 
@@ -216,19 +257,29 @@ if not st.session_state.entered_dashboard:
 # ─── Sidebar Navigasi ───
 st.sidebar.markdown(SIDEBAR_HEADER, unsafe_allow_html=True)
 st.sidebar.markdown("---")
-menu = st.sidebar.radio("Menu", [
-    "🏠 Beranda",
-    "👥 Data Pelanggan",
-    "🚚 Konfigurasi Armada",
-    "⚙️ Simulasi DVRPTW",
-    "📊 Analisis Hasil",
-], label_visibility="collapsed")
+# Inisialisasi menu aktif di session state jika belum ada
+if "menu" not in st.session_state:
+    st.session_state.menu = "Beranda"
+
+# Render navigasi tombol nyata di sidebar
+for option in ["Beranda", "Data Pelanggan", "Konfigurasi Armada", "Simulasi DVRPTW", "Analisis Hasil"]:
+    is_active = (st.session_state.menu == option)
+    if st.sidebar.button(
+        option,
+        type="primary" if is_active else "secondary",
+        use_container_width=True,
+        key=f"nav_btn_{option}"
+    ):
+        st.session_state.menu = option
+        st.rerun()
+
+menu = st.session_state.menu
 st.sidebar.markdown("---")
-if st.sidebar.button("⬅️ Kembali ke Cover Page", use_container_width=True):
+if st.sidebar.button("⬅️ Kembali ke Cover Page", use_container_width=True, key="btn_back_to_cover"):
     st.session_state.entered_dashboard = False
     st.rerun()
 
-if st.sidebar.button("⚠️ Reset Semua Data", use_container_width=True):
+if st.sidebar.button("⚠️ Reset Semua Data", use_container_width=True, key="btn_reset_all_data"):
     entered = st.session_state.entered_dashboard
     for k in list(st.session_state.keys()):
         del st.session_state[k]
@@ -245,7 +296,7 @@ if st.sidebar.button("⚠️ Reset Semua Data", use_container_width=True):
 # ═══════════════════════════════════════════════════
 # HALAMAN: BERANDA
 # ═══════════════════════════════════════════════════
-if menu == "🏠 Beranda":
+if menu == "Beranda":
     st.markdown(HERO_BANNER, unsafe_allow_html=True)
     st.markdown("### Tentang Aplikasi")
     st.markdown("""
@@ -295,81 +346,229 @@ if menu == "🏠 Beranda":
 # ═══════════════════════════════════════════════════
 # HALAMAN: DATA PELANGGAN
 # ═══════════════════════════════════════════════════
-elif menu == "👥 Data Pelanggan":
+elif menu == "Data Pelanggan":
     st.markdown(HERO_BANNER, unsafe_allow_html=True)
-    st.markdown("### 📥 Upload Berkas Data DVRPTW")
-    st.caption(
-        "Upload file JSON yang berisi data pelanggan (statis & dinamis), matriks jarak, dan matriks waktu. "
-        "Seluruh data akan langsung dimuat secara otomatis di bawah ini."
-    )
     
-    up = st.file_uploader("Pilih Berkas JSON", type=["json"], label_visibility="collapsed")
-    if up:
-        try:
-            raw = _json.loads(up.read())
-            if isinstance(raw, dict) and "customers" in raw:
-                cust_list = raw["customers"]
-                df = pd.DataFrame(cust_list)
-                if "Service Time (detik)" in df.columns:
-                    df["Service Time (jam)"] = (df["Service Time (detik)"] / 3600.0).round(6)
-                st.session_state.cust_df = df
-                st.session_state.n_cust = len(df)
-
-                if "depot" in raw:
-                    dep = raw["depot"]
-                    st.session_state.depot_open = float(dep.get("tw_open", 4.0))
-                    st.session_state.depot_close = float(dep.get("tw_close", 7.0))
-                    st.session_state.capacity = int(dep.get("capacity", 2500))
-                    st.session_state.speed = float(dep.get("speed", 60.0))
-                    st.session_state.max_vehicles = int(dep.get("max_vehicles", 2))
-
-                if "distance_matrix" in raw:
-                    dmx_arr = np.array(raw["distance_matrix"])
-                    nn = len(dmx_arr)
-                    st.session_state.dist_mx = pd.DataFrame(
-                        dmx_arr,
-                        columns=[str(i) for i in range(nn)],
-                        index=[str(i) for i in range(nn)],
-                    )
-
-                if "time_matrix" in raw:
-                    tmx_arr = np.array(raw["time_matrix"])
-                    nn = len(tmx_arr)
-                    st.session_state.time_mx = pd.DataFrame(
-                        tmx_arr,
-                        columns=[str(i) for i in range(nn)],
-                        index=[str(i) for i in range(nn)],
-                    )
-
-                if "dynamic_customers" in raw and raw["dynamic_customers"]:
-                    dyn_df = pd.DataFrame(raw["dynamic_customers"])
-                    if "Service Time (detik)" in dyn_df.columns:
-                        dyn_df["Service Time (jam)"] = (dyn_df["Service Time (detik)"] / 3600.0).round(6)
-                    st.session_state.dyn_df = dyn_df
-                else:
-                    st.session_state.dyn_df = None
-
-                # Reset hasil simulasi sebelumnya agar tidak stale
-                st.session_state.sim_result = None
-                st.session_state.sim_el = None
-                st.session_state.sim_c = None
-                st.session_state.sim_d = None
-                st.session_state.sim_t = None
-                st.session_state.sim_dep = None
-
-                save_session_cache()
-                st.success(f"✅ Data berhasil dimuat dari **{up.name}**!")
+    # 1. Mode Input Selection
+    st.markdown("<div style='font-size: 15px;'>Pilih Metode Penginputan Data:</div>", unsafe_allow_html=True)
+    col_imp, col_man = st.columns(2)
+    with col_imp:
+        is_active_imp = (st.session_state.input_mode == "📥 Import dari File JSON")
+        if st.button(
+            "📥 Import dari File JSON",
+            type="primary" if is_active_imp else "secondary",
+            use_container_width=True,
+            key="btn_input_mode_import"
+        ):
+            st.session_state.input_mode = "📥 Import dari File JSON"
+            if "last_uploaded_file" in st.session_state:
+                del st.session_state.last_uploaded_file
+            save_session_cache()
+            st.rerun()
+            
+    with col_man:
+        is_active_man = (st.session_state.input_mode == "✍️ Input Manual Secara Mandiri")
+        if st.button(
+            "✍️ Input Manual Secara Mandiri",
+            type="primary" if is_active_man else "secondary",
+            use_container_width=True,
+            key="btn_input_mode_manual"
+        ):
+            st.session_state.input_mode = "✍️ Input Manual Secara Mandiri"
+            if st.session_state.cust_df is None:
+                st.session_state.n_static = 0
+                st.session_state.n_dynamic = 0
             else:
-                st.error("Format JSON tidak valid. Pastikan ada kunci 'customers'.")
-        except Exception as e:
-            st.error(f"Gagal memproses file: {e}")
+                st.session_state.n_static = len(st.session_state.cust_df)
+                st.session_state.n_dynamic = len(st.session_state.dyn_df) if st.session_state.dyn_df is not None else 0
+            if "last_uploaded_file" in st.session_state:
+                del st.session_state.last_uploaded_file
+            save_session_cache()
+            st.rerun()
 
-    # Cek apakah ada data aktif di session state
-    if st.session_state.cust_df is not None:
-        st.markdown("---")
+
+    # 2. Handle Import Mode specific UI
+    show_data_section = False
+    if st.session_state.input_mode == "📥 Import dari File JSON":
+        st.markdown("### Upload Berkas Data DVRPTW")
+        st.caption(
+            "Upload file JSON yang berisi data pelanggan (statis & dinamis), matriks jarak, dan matriks waktu. "
+            "Seluruh data akan langsung dimuat secara otomatis di bawah ini."
+        )
+        up = st.file_uploader("Pilih Berkas JSON", type=["json"], label_visibility="collapsed")
+        if up:
+            file_key = f"{up.name}_{up.size}"
+            if "last_uploaded_file" not in st.session_state or st.session_state.last_uploaded_file != file_key:
+                try:
+                    raw = _json.loads(up.read())
+                    if isinstance(raw, dict) and "customers" in raw:
+                        cust_list = raw["customers"]
+                        df = pd.DataFrame(cust_list)
+                        if "Service Time (detik)" in df.columns:
+                            df["Service Time (jam)"] = (df["Service Time (detik)"] / 3600.0).round(6)
+                        st.session_state.cust_df = df
+                        st.session_state.n_cust = len(df)
+                        st.session_state.n_static = len(df)
+
+                        if "depot" in raw:
+                            dep = raw["depot"]
+                            st.session_state.depot_open = float(dep.get("tw_open", 4.0))
+                            st.session_state.depot_close = float(dep.get("tw_close", 7.0))
+                            st.session_state.capacity = int(dep.get("capacity", 2500))
+                            st.session_state.speed = float(dep.get("speed", 60.0))
+                            st.session_state.max_vehicles = int(dep.get("max_vehicles", 2))
+
+                        if "distance_matrix" in raw:
+                            dmx_arr = np.array(raw["distance_matrix"])
+                            nn = len(dmx_arr)
+                            st.session_state.dist_mx = pd.DataFrame(
+                                dmx_arr,
+                                columns=[str(i) for i in range(nn)],
+                                index=[str(i) for i in range(nn)],
+                            )
+
+                        if "time_matrix" in raw:
+                            tmx_arr = np.array(raw["time_matrix"])
+                            nn = len(tmx_arr)
+                            st.session_state.time_mx = pd.DataFrame(
+                                tmx_arr,
+                                columns=[str(i) for i in range(nn)],
+                                index=[str(i) for i in range(nn)],
+                            )
+
+                        if "dynamic_customers" in raw and raw["dynamic_customers"]:
+                            dyn_df = pd.DataFrame(raw["dynamic_customers"])
+                            if "Service Time (detik)" in dyn_df.columns:
+                                dyn_df["Service Time (jam)"] = (dyn_df["Service Time (detik)"] / 3600.0).round(6)
+                            st.session_state.dyn_df = dyn_df
+                            st.session_state.n_dynamic = len(dyn_df)
+                        else:
+                            st.session_state.dyn_df = None
+                            st.session_state.n_dynamic = 0
+
+                        st.session_state.sim_result = None
+                        st.session_state.last_uploaded_file = file_key
+                        save_session_cache()
+                        st.success(f"✅ Data berhasil dimuat dari {up.name}!")
+                        st.rerun()
+                    else:
+                        st.error("Format JSON tidak valid. Pastikan ada kunci 'customers'.")
+                except Exception as e:
+                    st.error(f"Gagal memproses file: {e}")
         
-        # 📊 Ringkasan Data Aktif
-        n_st = len(st.session_state.cust_df)
+        if st.session_state.cust_df is not None:
+            show_data_section = True
+        else:
+            st.info("ℹ️ Silakan upload file JSON data DVRPTW di atas untuk menampilkan isi tabel secara langsung.")
+            
+    else:
+        # Manual Input Mode specific UI
+        st.markdown("### Pengaturan Jumlah Pelanggan")
+        col_st, col_dyn = st.columns(2)
+        with col_st:
+            n_st_val = st.number_input(
+                "Atur Jumlah Pelanggan Statis", 0, 200,
+                value=int(st.session_state.n_static),
+                help="Masukkan jumlah pelanggan statis."
+            )
+            if n_st_val != st.session_state.n_static:
+                new_n = n_st_val
+                st.session_state.n_static = new_n
+                st.session_state.n_cust = new_n
+                
+                # Resize cust_df
+                if new_n == 0:
+                    st.session_state.cust_df = None
+                else:
+                    if st.session_state.cust_df is None:
+                        st.session_state.cust_df = pd.DataFrame({
+                            "Customer": range(1, new_n + 1),
+                            "Demand": [100] * new_n,
+                            "Service Time (detik)": [300] * new_n,
+                            "Service Time (jam)": [(300 / 3600.0)] * new_n,
+                            "Reveal Time (jam)": [st.session_state.depot_open] * new_n,
+                        })
+                    else:
+                        current_len = len(st.session_state.cust_df)
+                        if new_n > current_len:
+                            new_rows = pd.DataFrame({
+                                "Customer": range(current_len + 1, new_n + 1),
+                                "Demand": [100] * (new_n - current_len),
+                                "Service Time (detik)": [300] * (new_n - current_len),
+                                "Service Time (jam)": [(300 / 3600.0)] * (new_n - current_len),
+                                "Reveal Time (jam)": [st.session_state.depot_open] * (new_n - current_len),
+                            })
+                            st.session_state.cust_df = pd.concat([st.session_state.cust_df, new_rows], ignore_index=True)
+                        elif new_n < current_len:
+                            st.session_state.cust_df = st.session_state.cust_df.iloc[:new_n]
+                
+                # Align dyn_df IDs
+                if st.session_state.dyn_df is not None and len(st.session_state.dyn_df) > 0:
+                    dyn_len = len(st.session_state.dyn_df)
+                    st.session_state.dyn_df["Customer"] = list(range(new_n + 1, new_n + 1 + dyn_len))
+
+                # Resize matrices
+                nn = new_n + (st.session_state.n_dynamic if st.session_state.dyn_df is not None else 0) + 1
+                st.session_state.dist_mx = resize_matrix(st.session_state.dist_mx, nn)
+                st.session_state.time_mx = resize_matrix(st.session_state.time_mx, nn)
+                
+                save_session_cache()
+                st.rerun()
+
+        with col_dyn:
+            n_dyn_val = st.number_input(
+                "Atur Jumlah Pelanggan Dinamis", 0, 50,
+                value=int(st.session_state.n_dynamic),
+                help="Masukkan jumlah pelanggan dinamis."
+            )
+            if n_dyn_val != st.session_state.n_dynamic:
+                new_n = n_dyn_val
+                st.session_state.n_dynamic = new_n
+                
+                # Resize dyn_df
+                if new_n == 0:
+                    st.session_state.dyn_df = None
+                else:
+                    start_id = st.session_state.n_static + 1
+                    if st.session_state.dyn_df is None:
+                        st.session_state.dyn_df = pd.DataFrame({
+                            "Customer": range(start_id, start_id + new_n),
+                            "Demand": [100] * new_n,
+                            "Service Time (detik)": [300] * new_n,
+                            "Service Time (jam)": [(300 / 3600.0)] * new_n,
+                            "Reveal Time (jam)": [st.session_state.depot_open + 0.5] * new_n,
+                        })
+                    else:
+                        current_len = len(st.session_state.dyn_df)
+                        if new_n > current_len:
+                            new_rows = pd.DataFrame({
+                                "Customer": range(start_id + current_len, start_id + new_n),
+                                "Demand": [100] * (new_n - current_len),
+                                "Service Time (detik)": [300] * (new_n - current_len),
+                                "Service Time (jam)": [(300 / 3600.0)] * (new_n - current_len),
+                                "Reveal Time (jam)": [st.session_state.depot_open + 0.5] * (new_n - current_len),
+                            })
+                            st.session_state.dyn_df = pd.concat([st.session_state.dyn_df, new_rows], ignore_index=True)
+                        elif new_n < current_len:
+                            st.session_state.dyn_df = st.session_state.dyn_df.iloc[:new_n]
+                
+                # Resize matrices
+                nn = st.session_state.n_static + new_n + 1
+                st.session_state.dist_mx = resize_matrix(st.session_state.dist_mx, nn)
+                st.session_state.time_mx = resize_matrix(st.session_state.time_mx, nn)
+                
+                save_session_cache()
+                st.rerun()
+
+        if st.session_state.n_static > 0 or st.session_state.n_dynamic > 0:
+            show_data_section = True
+        else:
+            st.info("💡 Silakan tentukan jumlah pelanggan statis atau dinamis di atas untuk mulai membuat tabel secara manual.")
+
+    # 3. Main Data Section (Shared for both Import with data and Manual with data)
+    if show_data_section:
+        st.markdown("---")
+        n_st = len(st.session_state.cust_df) if st.session_state.cust_df is not None else 0
         n_dyn = len(st.session_state.dyn_df) if st.session_state.dyn_df is not None else 0
         
         st.markdown("#### 📊 Ringkasan Dataset Aktif")
@@ -378,192 +577,209 @@ elif menu == "👥 Data Pelanggan":
         c2.metric("Pelanggan Dinamis", f"{n_dyn} Pelanggan")
         c3.metric("Total Pelanggan Terdaftar", f"{n_st + n_dyn} Pelanggan")
         
-        st.markdown("---")
-        
-        # 🔵 Data Pelanggan Statis
-        st.markdown("### 🔵 Data Pelanggan Statis")
-        st.caption(
-            "Pelanggan statis adalah pelanggan yang pesanannya sudah diketahui sejak awal operasional."
-        )
-        
-        with st.expander("⚙️ Pengaturan Manual Jumlah Pelanggan Statis"):
-            n = st.number_input(
-                "Atur Jumlah Pelanggan Statis", 1, 200,
-                st.session_state.n_cust, key="n_static"
-            )
-            if len(st.session_state.cust_df) != n:
-                st.session_state.cust_df = pd.DataFrame({
-                    "Customer": range(1, n + 1),
-                    "Demand": [0] * n,
-                    "Service Time (detik)": [0] * n,
-                    "Service Time (jam)": [0.0] * n,
-                    "Reveal Time (jam)": [st.session_state.depot_open] * n,
-                })
-                st.session_state.n_cust = n
-                save_session_cache()
-                st.rerun()
+        # Render Static Section
+        if n_st > 0:
+            st.markdown("---")
+            st.markdown("### 🔵 Data Pelanggan Statis")
+            st.caption("Pelanggan statis adalah pelanggan yang pesanannya sudah diketahui sejak awal operasional.")
+            
+            # If in Import mode, let them also adjust manually from expander if they want
+            if st.session_state.input_mode == "📥 Import dari File JSON":
+                with st.expander("⚙️ Pengaturan Manual Jumlah Pelanggan Statis"):
+                    n_st_val = st.number_input(
+                        "Atur Jumlah Pelanggan Statis (Import)", 0, 200,
+                        value=int(st.session_state.n_static)
+                    )
+                    if n_st_val != st.session_state.n_static:
+                        new_n = n_st_val
+                        st.session_state.n_static = new_n
+                        st.session_state.n_cust = new_n
+                        if new_n == 0:
+                            st.session_state.cust_df = None
+                        else:
+                            if st.session_state.cust_df is None:
+                                st.session_state.cust_df = pd.DataFrame({
+                                    "Customer": range(1, new_n + 1),
+                                    "Demand": [100] * new_n,
+                                    "Service Time (detik)": [300] * new_n,
+                                    "Service Time (jam)": [(300 / 3600.0)] * new_n,
+                                    "Reveal Time (jam)": [st.session_state.depot_open] * new_n,
+                                })
+                            else:
+                                current_len = len(st.session_state.cust_df)
+                                if new_n > current_len:
+                                    new_rows = pd.DataFrame({
+                                        "Customer": range(current_len + 1, new_n + 1),
+                                        "Demand": [100] * (new_n - current_len),
+                                        "Service Time (detik)": [300] * (new_n - current_len),
+                                        "Service Time (jam)": [(300 / 3600.0)] * (new_n - current_len),
+                                        "Reveal Time (jam)": [st.session_state.depot_open] * (new_n - current_len),
+                                    })
+                                    st.session_state.cust_df = pd.concat([st.session_state.cust_df, new_rows], ignore_index=True)
+                                elif new_n < current_len:
+                                    st.session_state.cust_df = st.session_state.cust_df.iloc[:new_n]
+                        
+                        if st.session_state.dyn_df is not None and len(st.session_state.dyn_df) > 0:
+                            dyn_len = len(st.session_state.dyn_df)
+                            st.session_state.dyn_df["Customer"] = list(range(new_n + 1, new_n + 1 + dyn_len))
 
-        cols_to_keep = [
-            "Customer", "Demand", "Service Time (detik)",
-            "Service Time (jam)", "Reveal Time (jam)",
-        ]
-        for col in cols_to_keep:
-            if col not in st.session_state.cust_df.columns:
-                if col == "Reveal Time (jam)":
-                    st.session_state.cust_df[col] = st.session_state.depot_open
-                elif col == "Service Time (jam)":
-                    if "Service Time (detik)" in st.session_state.cust_df.columns:
-                        st.session_state.cust_df[col] = (st.session_state.cust_df["Service Time (detik)"] / 3600.0).round(6)
-                    else:
-                        st.session_state.cust_df[col] = 0.0
-                else:
-                    st.session_state.cust_df[col] = 0
+                        nn = new_n + (st.session_state.n_dynamic if st.session_state.dyn_df is not None else 0) + 1
+                        st.session_state.dist_mx = resize_matrix(st.session_state.dist_mx, nn)
+                        st.session_state.time_mx = resize_matrix(st.session_state.time_mx, nn)
+                        save_session_cache()
+                        st.rerun()
 
-        st.session_state.cust_df = st.session_state.cust_df[cols_to_keep]
-
-        edited_cust = st.data_editor(
-            st.session_state.cust_df,
-            hide_index=True,
-            use_container_width=True,
-            column_config={
-                "Customer": st.column_config.NumberColumn("ID Pelanggan", disabled=True),
-                "Demand": st.column_config.NumberColumn("Demand (kg)", min_value=0),
-                "Service Time (detik)": st.column_config.NumberColumn(
-                    "Service Time (detik)", min_value=0
-                ),
-                "Service Time (jam)": st.column_config.NumberColumn(
-                    "Service Time (jam)", format="%.4f", disabled=True
-                ),
-                "Reveal Time (jam)": st.column_config.NumberColumn(
-                    "Reveal Time (jam)", format="%.2f", disabled=True,
-                    help="Reveal time = jam buka depot."
-                ),
-            },
-            key="cust_editor"
-        )
-        
-        # Cek dan simpan jika ada perubahan
-        if not edited_cust.equals(st.session_state.cust_df):
-            st.session_state.cust_df = edited_cust
-            if "Service Time (detik)" in st.session_state.cust_df.columns:
-                st.session_state.cust_df["Service Time (jam)"] = (st.session_state.cust_df["Service Time (detik)"] / 3600).round(6)
-            save_session_cache()
-            st.rerun()
-
-        df = st.session_state.cust_df
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Total Demand Statis", f"{int(df['Demand'].sum())} kg")
-        c2.metric("Rata-rata Demand Statis", f"{df['Demand'].mean():.1f} kg")
-        c3.metric("Kapasitas Armada Tersedia", f"{st.session_state.capacity} kg/mobil")
-
-        st.markdown("---")
-
-        # 🔴 Data Pelanggan Dinamis
-        st.markdown("### 🔴 Data Pelanggan Dinamis")
-        st.caption(
-            "Pelanggan dinamis adalah pelanggan yang pesanannya muncul setelah kendaraan sudah berangkat. "
-            "Pesanan disisipkan menggunakan Cheapest Insertion."
-        )
-        
-        with st.expander("⚙️ Pengaturan Manual Jumlah Pelanggan Dinamis"):
-            n_dyn_input = st.number_input(
-                "Atur Jumlah Pelanggan Dinamis", 0, 50,
-                n_dyn, key="n_dynamic"
-            )
-            if (st.session_state.dyn_df is None and n_dyn_input > 0) or (st.session_state.dyn_df is not None and len(st.session_state.dyn_df) != n_dyn_input):
-                if n_dyn_input > 0:
-                    start_id = st.session_state.n_cust + 1
-                    st.session_state.dyn_df = pd.DataFrame({
-                        "Customer": range(start_id, start_id + n_dyn_input),
-                        "Demand": [0] * n_dyn_input,
-                        "Service Time (detik)": [0] * n_dyn_input,
-                        "Service Time (jam)": [0.0] * n_dyn_input,
-                        "Reveal Time (jam)": [st.session_state.depot_open + 0.5] * n_dyn_input,
-                    })
-                else:
-                    st.session_state.dyn_df = None
-                save_session_cache()
-                st.rerun()
-
-        if st.session_state.dyn_df is not None and len(st.session_state.dyn_df) > 0:
-            dyn_cols = [
+            cols_to_keep = [
                 "Customer", "Demand", "Service Time (detik)",
                 "Service Time (jam)", "Reveal Time (jam)",
             ]
-            for col in dyn_cols:
-                if col not in st.session_state.dyn_df.columns:
+            for col in cols_to_keep:
+                if col not in st.session_state.cust_df.columns:
                     if col == "Reveal Time (jam)":
-                        st.session_state.dyn_df[col] = st.session_state.depot_open + 0.5
+                        st.session_state.cust_df[col] = st.session_state.depot_open
                     elif col == "Service Time (jam)":
-                        if "Service Time (detik)" in st.session_state.dyn_df.columns:
-                            st.session_state.dyn_df[col] = (st.session_state.dyn_df["Service Time (detik)"] / 3600.0).round(6)
+                        if "Service Time (detik)" in st.session_state.cust_df.columns:
+                            st.session_state.cust_df[col] = (st.session_state.cust_df["Service Time (detik)"] / 3600.0).round(6)
                         else:
-                            st.session_state.dyn_df[col] = 0.0
+                            st.session_state.cust_df[col] = 0.0
                     else:
-                        st.session_state.dyn_df[col] = 0
+                        st.session_state.cust_df[col] = 0
 
-            st.session_state.dyn_df = st.session_state.dyn_df[dyn_cols]
+            st.session_state.cust_df = st.session_state.cust_df[cols_to_keep]
 
-            edited_dyn = st.data_editor(
-                st.session_state.dyn_df,
+            edited_cust = st.data_editor(
+                st.session_state.cust_df,
                 hide_index=True,
                 use_container_width=True,
                 column_config={
                     "Customer": st.column_config.NumberColumn("ID Pelanggan", disabled=True),
                     "Demand": st.column_config.NumberColumn("Demand (kg)", min_value=0),
-                    "Service Time (detik)": st.column_config.NumberColumn(
-                        "Service Time (detik)", min_value=0
-                    ),
-                    "Service Time (jam)": st.column_config.NumberColumn(
-                        "Service Time (jam)", format="%.4f", disabled=True
-                    ),
+                    "Service Time (detik)": st.column_config.NumberColumn("Service Time (detik)", min_value=0),
+                    "Service Time (jam)": st.column_config.NumberColumn("Service Time (jam)", format="%.4f", disabled=True),
                     "Reveal Time (jam)": st.column_config.NumberColumn(
                         "Reveal Time (jam)", format="%.2f",
-                        help="Jam pesanan masuk ke sistem. Harus > jam buka depot."
+                        help="Jam pesanan diketahui oleh sistem (statis)."
                     ),
                 },
-                key="dyn_editor"
+                key="cust_editor"
             )
             
-            if not edited_dyn.equals(st.session_state.dyn_df):
-                st.session_state.dyn_df = edited_dyn
-                if "Service Time (detik)" in st.session_state.dyn_df.columns:
-                    st.session_state.dyn_df["Service Time (jam)"] = (st.session_state.dyn_df["Service Time (detik)"] / 3600).round(6)
+            if not edited_cust.equals(st.session_state.cust_df):
+                st.session_state.cust_df = edited_cust
+                if "Service Time (detik)" in st.session_state.cust_df.columns:
+                    st.session_state.cust_df["Service Time (jam)"] = (st.session_state.cust_df["Service Time (detik)"] / 3600).round(6)
                 save_session_cache()
                 st.rerun()
 
-            dfd = st.session_state.dyn_df
+            df = st.session_state.cust_df
             c1, c2, c3 = st.columns(3)
-            c1.metric("Total Demand Dinamis", f"{int(dfd['Demand'].sum())} kg")
-            c2.metric("Rata-rata Demand Dinamis", f"{dfd['Demand'].mean():.1f} kg")
-            c3.metric("Maksimum Reveal Time", f"{dfd['Reveal Time (jam)'].max():.2f} jam")
-        else:
-            st.info("ℹ️ Tidak ada pelanggan dinamis aktif dalam data.")
+            c1.metric("Total Demand Statis", f"{int(df['Demand'].sum())} kg")
+            c2.metric("Rata-rata Demand Statis", f"{df['Demand'].mean():.1f} kg")
+            c3.metric("Kapasitas Armada Tersedia", f"{st.session_state.capacity} kg/mobil")
 
+        # Render Dynamic Section
+        if n_dyn > 0 or st.session_state.n_dynamic > 0:
+            st.markdown("---")
+            st.markdown("### 🔴 Data Pelanggan Dinamis")
+            st.caption("Pelanggan dinamis adalah pelanggan yang pesanannya muncul setelah kendaraan sudah berangkat.")
+            
+            if st.session_state.input_mode == "📥 Import dari File JSON":
+                with st.expander("⚙️ Pengaturan Manual Jumlah Pelanggan Dinamis"):
+                    n_dyn_val = st.number_input(
+                        "Atur Jumlah Pelanggan Dinamis (Import)", 0, 50,
+                        value=int(st.session_state.n_dynamic)
+                    )
+                    if n_dyn_val != st.session_state.n_dynamic:
+                        new_n = n_dyn_val
+                        st.session_state.n_dynamic = new_n
+                        if new_n == 0:
+                            st.session_state.dyn_df = None
+                        else:
+                            start_id = st.session_state.n_static + 1
+                            if st.session_state.dyn_df is None:
+                                st.session_state.dyn_df = pd.DataFrame({
+                                    "Customer": range(start_id, start_id + new_n),
+                                    "Demand": [100] * new_n,
+                                    "Service Time (detik)": [300] * new_n,
+                                    "Service Time (jam)": [(300 / 3600.0)] * new_n,
+                                    "Reveal Time (jam)": [st.session_state.depot_open + 0.5] * new_n,
+                                })
+                            else:
+                                current_len = len(st.session_state.dyn_df)
+                                if new_n > current_len:
+                                    new_rows = pd.DataFrame({
+                                        "Customer": range(start_id + current_len, start_id + new_n),
+                                        "Demand": [100] * (new_n - current_len),
+                                        "Service Time (detik)": [300] * (new_n - current_len),
+                                        "Service Time (jam)": [(300 / 3600.0)] * (new_n - current_len),
+                                        "Reveal Time (jam)": [st.session_state.depot_open + 0.5] * (new_n - current_len),
+                                    })
+                                    st.session_state.dyn_df = pd.concat([st.session_state.dyn_df, new_rows], ignore_index=True)
+                                elif new_n < current_len:
+                                    st.session_state.dyn_df = st.session_state.dyn_df.iloc[:new_n]
+                        
+                        nn = st.session_state.n_static + new_n + 1
+                        st.session_state.dist_mx = resize_matrix(st.session_state.dist_mx, nn)
+                        st.session_state.time_mx = resize_matrix(st.session_state.time_mx, nn)
+                        save_session_cache()
+                        st.rerun()
+
+            if st.session_state.dyn_df is not None and len(st.session_state.dyn_df) > 0:
+                dyn_cols = [
+                    "Customer", "Demand", "Service Time (detik)",
+                    "Service Time (jam)", "Reveal Time (jam)",
+                ]
+                for col in dyn_cols:
+                    if col not in st.session_state.dyn_df.columns:
+                        if col == "Reveal Time (jam)":
+                            st.session_state.dyn_df[col] = st.session_state.depot_open + 0.5
+                        elif col == "Service Time (jam)":
+                            if "Service Time (detik)" in st.session_state.dyn_df.columns:
+                                st.session_state.dyn_df[col] = (st.session_state.dyn_df["Service Time (detik)"] / 3600.0).round(6)
+                            else:
+                                st.session_state.dyn_df[col] = 0.0
+                        else:
+                            st.session_state.dyn_df[col] = 0
+
+                st.session_state.dyn_df = st.session_state.dyn_df[dyn_cols]
+
+                edited_dyn = st.data_editor(
+                    st.session_state.dyn_df,
+                    hide_index=True,
+                    use_container_width=True,
+                    column_config={
+                        "Customer": st.column_config.NumberColumn("ID Pelanggan", disabled=True),
+                        "Demand": st.column_config.NumberColumn("Demand (kg)", min_value=0),
+                        "Service Time (detik)": st.column_config.NumberColumn("Service Time (detik)", min_value=0),
+                        "Service Time (jam)": st.column_config.NumberColumn("Service Time (jam)", format="%.4f", disabled=True),
+                        "Reveal Time (jam)": st.column_config.NumberColumn("Reveal Time (jam)", format="%.2f", help="Jam pesanan masuk ke sistem."),
+                    },
+                    key="dyn_editor"
+                )
+                
+                if not edited_dyn.equals(st.session_state.dyn_df):
+                    st.session_state.dyn_df = edited_dyn
+                    if "Service Time (detik)" in st.session_state.dyn_df.columns:
+                        st.session_state.dyn_df["Service Time (jam)"] = (st.session_state.dyn_df["Service Time (detik)"] / 3600).round(6)
+                    save_session_cache()
+                    st.rerun()
+
+                dfd = st.session_state.dyn_df
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Total Demand Dinamis", f"{int(dfd['Demand'].sum())} kg")
+                c2.metric("Rata-rata Demand Dinamis", f"{dfd['Demand'].mean():.1f} kg")
+                c3.metric("Maksimum Reveal Time", f"{dfd['Reveal Time (jam)'].max():.2f} jam")
+
+        # Render Distance & Time Matrices
         st.markdown("---")
-
-        # 🗺️ Matriks Jarak & Matriks Waktu
         st.markdown("### 🗺️ Matriks Jarak & Matriks Waktu Tempuh")
-        st.caption(
-            "Matriks jarak (km) dan matriks waktu tempuh (jam) antar seluruh node (Node 0 = Depot Pusat)."
-        )
-
-        nn = st.session_state.n_cust + 1
-        if st.session_state.dyn_df is not None and len(st.session_state.dyn_df) > 0:
-            nn = st.session_state.n_cust + len(st.session_state.dyn_df) + 1
-
+        st.caption("Matriks jarak (km) dan matriks waktu tempuh (jam) antar seluruh node (Node 0 = Depot Pusat).")
+        
+        nn = n_st + n_dyn + 1
         if st.session_state.dist_mx is None or st.session_state.dist_mx.shape != (nn, nn):
-            st.session_state.dist_mx = pd.DataFrame(
-                np.zeros((nn, nn)),
-                columns=[str(i) for i in range(nn)],
-                index=[str(i) for i in range(nn)],
-            )
+            st.session_state.dist_mx = resize_matrix(st.session_state.dist_mx, nn)
         if st.session_state.time_mx is None or st.session_state.time_mx.shape != (nn, nn):
-            st.session_state.time_mx = pd.DataFrame(
-                np.zeros((nn, nn)),
-                columns=[str(i) for i in range(nn)],
-                index=[str(i) for i in range(nn)],
-            )
+            st.session_state.time_mx = resize_matrix(st.session_state.time_mx, nn)
 
         col_dist, col_time = st.columns(2)
         with col_dist:
@@ -591,14 +807,51 @@ elif menu == "👥 Data Pelanggan":
                 st.session_state.time_mx = edited_time
                 save_session_cache()
                 st.rerun()
-    else:
-        st.info("ℹ️ Silakan upload file JSON data DVRPTW di atas untuk menampilkan isi tabel secara langsung.")
+
+        # Render JSON Download/Export Section
+        st.markdown("---")
+        st.markdown("### 📤 Ekspor Data Pelanggan & Matriks ke JSON")
+        st.caption("Unduh data aktif (statis, dinamis, matriks, dan parameter depot/armada) sebagai berkas JSON.")
+        
+        export_fn = st.text_input(
+            "Nama Berkas JSON (tanpa ekstensi .json):",
+            value=st.session_state.export_filename,
+            key="export_filename_input"
+        )
+        if export_fn != st.session_state.export_filename:
+            st.session_state.export_filename = export_fn
+            save_session_cache()
+            
+        export_data = {
+            "depot": {
+                "tw_open": float(st.session_state.depot_open),
+                "tw_close": float(st.session_state.depot_close),
+                "capacity": int(st.session_state.capacity),
+                "speed": float(st.session_state.speed),
+                "max_vehicles": int(st.session_state.max_vehicles),
+            },
+            "customers": st.session_state.cust_df.to_dict(orient="records") if st.session_state.cust_df is not None else [],
+            "dynamic_customers": st.session_state.dyn_df.to_dict(orient="records") if st.session_state.dyn_df is not None else [],
+            "distance_matrix": st.session_state.dist_mx.values.tolist() if st.session_state.dist_mx is not None else [],
+            "time_matrix": st.session_state.time_mx.values.tolist() if st.session_state.time_mx is not None else [],
+        }
+        
+        clean_export_data = make_json_serializable(export_data)
+        json_str = _json.dumps(clean_export_data, indent=4)
+        
+        st.download_button(
+            label="💾 Unduh Data JSON",
+            data=json_str,
+            file_name=f"{st.session_state.export_filename}.json",
+            mime="application/json",
+            use_container_width=True
+        )
 
 
 # ═══════════════════════════════════════════════════
 # HALAMAN: KONFIGURASI ARMADA
 # ═══════════════════════════════════════════════════
-elif menu == "🚚 Konfigurasi Armada":
+elif menu == "Konfigurasi Armada":
     st.markdown(HERO_BANNER, unsafe_allow_html=True)
     st.markdown("### Parameter Depot dan Kendaraan")
     ca, cb = st.columns(2, gap="large")
@@ -643,7 +896,7 @@ elif menu == "🚚 Konfigurasi Armada":
 # ═══════════════════════════════════════════════════
 # HALAMAN: SIMULASI DVRPTW
 # ═══════════════════════════════════════════════════
-elif menu == "⚙️ Simulasi DVRPTW":
+elif menu == "Simulasi DVRPTW":
     st.markdown(HERO_BANNER, unsafe_allow_html=True)
     cdf = st.session_state.cust_df
     dmx = st.session_state.dist_mx
@@ -726,7 +979,6 @@ elif menu == "⚙️ Simulasi DVRPTW":
             )
 
         st.markdown("---")
-        st.markdown("### ⚙️ Konfigurasi Mesin Optimasi & Acakan")
         
         col_opt1, col_opt2 = st.columns(2, gap="large")
         with col_opt1:
@@ -757,7 +1009,7 @@ elif menu == "⚙️ Simulasi DVRPTW":
         
         selected_seed = int(seed_val) if use_fixed_seed else None
 
-        if st.button("Jalankan Simulasi DVRPTW", use_container_width=True):
+        if st.button("Jalankan Simulasi DVRPTW", type="primary", use_container_width=True):
             with st.spinner("Memproses simulasi distribusi dinamis..."):
                 t0 = _time.time()
                 # Selalu jalankan versi tanpa optimasi (Unoptimized)
@@ -818,7 +1070,7 @@ elif menu == "⚙️ Simulasi DVRPTW":
 # ═══════════════════════════════════════════════════
 # HALAMAN: ANALISIS HASIL
 # ═══════════════════════════════════════════════════
-elif menu == "📊 Analisis Hasil":
+elif menu == "Analisis Hasil":
     st.markdown(HERO_BANNER, unsafe_allow_html=True)
     if not st.session_state.sim_result:
         st.info("Belum ada hasil simulasi. Jalankan simulasi di halaman **Simulasi DVRPTW**.")

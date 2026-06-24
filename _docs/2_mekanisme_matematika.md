@@ -1,10 +1,10 @@
 # Panduan Mekanisme Matematika DVRPTW
 
-Dokumen ini menjelaskan dasar pemodelan matematis dari **Dynamic Vehicle Routing Problem with Time Windows (DVRPTW)** yang digunakan dalam proyek tesis Nuha. Dokumen ini dapat digunakan sebagai referensi utama penulisan Bab III (Metodologi Penelitian / Pemodelan Matematika) di draf skripsi Nuha.
+Dokumen ini menjelaskan dasar pemodelan matematis dari **Dynamic Vehicle Routing Problem with Time Windows (DVRPTW)** yang digunakan dalam proyek tugas akhir ini. Dokumen ini dapat digunakan sebagai referensi utama penulisan Bab III (Metodologi Penelitian / Pemodelan Matematika) pada laporan tugas akhir.
 
 ---
 
-## 📐 1. Formulasi Model Matematika DVRPTW
+## 1. Formulasi Model Matematika DVRPTW
 Permasalahan DVRPTW dimodelkan menggunakan graf terarah $G = (V, A)$, dengan:
 *   $V = \{0, 1, 2, ..., n\}$ sebagai himpunan seluruh titik (*nodes*), di mana titik $0$ mewakili **Depot Pusat**, dan $V \setminus \{0\}$ mewakili himpunan **Pelanggan**.
 *   $A = \{(i, j) : i, j \in V, i \neq j\}$ sebagai himpunan busur (*arcs*) yang menghubungkan antar titik.
@@ -21,13 +21,13 @@ Permasalahan DVRPTW dimodelkan menggunakan graf terarah $G = (V, A)$, dengan:
 
 ---
 
-## 🎯 2. Fungsi Tujuan (Objective Function)
+## 2. Fungsi Tujuan (Objective Function)
 Tujuan dari model ini adalah meminimalkan total jarak perjalanan yang ditempuh oleh seluruh armada kendaraan:
 $$\min \sum_{k \in K} \sum_{i \in V} \sum_{j \in V} d_{ij} x_{ijk}$$
 
 ---
 
-## 🔒 3. Batasan-Batasan Model (Constraints)
+## 3. Batasan-Batasan Model (Constraints)
 
 ### A. Alur Kunjungan
 1.  **Setiap pelanggan dilayani tepat satu kali** oleh satu kendaraan:
@@ -53,7 +53,7 @@ $$\sum_{i \in V \setminus \{0\}} q_i \left( \sum_{j \in V, j \neq i} x_{ijk} \ri
 
 ---
 
-## ⚡ 4. Aturan Dinamis & Batasan Non-Preemption
+## 4. Aturan Dinamis & Batasan Non-Preemption
 Kunci utama dari aspek dinamis (DVRPTW) pada proyek ini adalah penanganan pesanan baru yang muncul saat kendaraan sudah berada di perjalanan.
 
 ### Variabel Waktu Pemunculan ($T_{\text{reveal}}$)
